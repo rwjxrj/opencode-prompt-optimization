@@ -1,11 +1,18 @@
+<div align="center">
+
 # opencode-prompt-expand
+
+**在 OpenCode Desktop 的 composer 里，把粗糙草稿原地扩展为结构化提示词。**
 
 [![CI](https://github.com/rwjxrj/opencode-prompt-expand/actions/workflows/ci.yml/badge.svg)](https://github.com/rwjxrj/opencode-prompt-expand/actions/runs)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
+![OpenCode Desktop](https://img.shields.io/badge/OpenCode_Desktop-2.2.5-8b5cf6)
 
-[English README](../README.md)
+[English](../README.md) · [简体中文](README.zh-CN.md)
 
 ![opencode-prompt-expand](../assets/featured.png)
+
+</div>
 
 在 **OpenCode Desktop** 的 composer 里，把粗糙草稿扩展成结构化提示词，并原地写回。
 

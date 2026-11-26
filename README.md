@@ -1,17 +1,22 @@
+<div align="center">
+
 # opencode-prompt-expand
+
+**Expand rough drafts into structured prompts — in place, inside the OpenCode Desktop composer.**
 
 [![CI](https://github.com/rwjxrj/opencode-prompt-expand/actions/workflows/ci.yml/badge.svg)](https://github.com/rwjxrj/opencode-prompt-expand/actions/runs)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![OpenCode Desktop](https://img.shields.io/badge/OpenCode_Desktop-2.2.5-8b5cf6)
 
-![opencode-prompt-expand featured image](assets/featured.png)
+[English](README.md) · [简体中文](docs/README.zh-CN.md)
 
-Expand a rough draft in the **OpenCode Desktop** composer into a structured prompt, in place.
+![opencode-prompt-expand featured banner](assets/featured.png)
+
+</div>
 
 The plugin is a small OpenCode Desktop extension: it reads the current draft, asks your own connected model to expand it, writes the result back into the composer, and leaves the send action to you. It never sends a message, never writes session history, and never proxies model credentials.
 
 **Status:** experimental, source install only — this fork is not published to npm. The package version is `0.2.0`, plus the changes listed under *Unreleased* in [CHANGELOG.md](CHANGELOG.md). The OpenCode Desktop GUI plugin API is still marked experimental upstream; pin the OpenCode version you test against.
-
-[中文说明](docs/README.zh-CN.md)
 
 **Who it is for:** OpenCode Desktop users who write natural-language prompts and want a more structured first draft without leaving the composer. It is not a TUI plugin and it does not send messages for you.
 
