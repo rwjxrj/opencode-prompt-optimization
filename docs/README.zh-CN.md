@@ -1,5 +1,8 @@
 # opencode-prompt-expand
 
+[![CI](https://github.com/rwjxrj/opencode-prompt-expand/actions/workflows/ci.yml/badge.svg)](https://github.com/rwjxrj/opencode-prompt-expand/actions/runs)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
+
 [English README](../README.md)
 
 ![opencode-prompt-expand](../assets/featured.png)
@@ -15,6 +18,20 @@
 - 希望结果留在 composer 里，自己检查、修改后再按 Enter
 
 不适用于终端 TUI。插件不会自动发送消息，也不会写入会话历史。
+
+## 截图
+
+| composer（空闲） | composer（展开中） |
+|---|---|
+| ![发送按钮左侧的展开图标](../assets/screenshots/composer-idle.png) | ![模型工作时的渐变边框](../assets/screenshots/composer-loading.png) |
+
+按钮在发送按钮左侧；上图的草稿就是下面「输出示例」里的那一句。
+
+![提示词扩展设置页](../assets/screenshots/settings-zh.png)
+
+模型选择器可搜索供应商/模型，也可直接输入 `provider/model`：
+
+![模型选择器](../assets/screenshots/settings-zh-picker.png)
 
 ## 功能
 
@@ -112,6 +129,53 @@ prompt-expand.mode
 prompt-expand.outline
 prompt-expand.settings
 ```
+
+## 输出示例
+
+草稿，原样输入：
+
+> 帮我做一个数据看板，包含筛选和导出
+
+开启「项目感知」后，一次运行（简洁模式）的结果：
+
+<details>
+<summary>展开后的提示词</summary>
+
+```markdown
+## 目标
+开发一个数据看板页面，支持对看板数据进行筛选和导出。
+
+## 范围
+- 做：数据看板的核心页面，含数据展示、筛选功能、导出功能。
+- 不做：用户登录鉴权、后台管理、数据源搭建与数据库设计、移动端适配优化。
+
+## 上下文
+- 项目已依赖 @aliou/pi-guardrails、@oh-my-pi/pi-coding-agent、pi-hermes-memory，具体如何使用由实现方判断。
+- 看板要展示的具体数据指标、数据来源、导出格式均未指定。
+- 项目有 code-review-graph 知识图谱工具，探索代码时应优先使用图谱工具而非 Grep/Glob/Read。
+
+## 要求
+1. 看板需展示关键数据指标，具体指标以现有数据为准。
+2. 提供筛选能力，至少支持按时间范围筛选，其他筛选维度可按数据特点扩展。
+3. 筛选后看板中的所有图表和数据需同步更新。
+4. 提供导出功能，将当前筛选结果下的看板数据导出为文件。
+5. 界面简洁可用，筛选控件和导出按钮位置清晰。
+6. 涉及不确定的第三方库 API 时，先查证官方文档，不确定处标注「未验证」。
+
+## 产出
+- 可运行的看板页面代码，含必要的组件划分。
+- 附简短说明：如何启动、如何配置数据来源。
+- 长度以覆盖上述功能为准，不强制页数。
+
+## 验收
+- 页面可正常打开并展示数据。
+- 更改筛选条件后数据正确刷新。
+- 导出的文件内容与当前筛选结果一致且可正常打开。
+```
+
+</details>
+
+差别在于：草稿只说了一个功能，结果补上了目标、做与不做、项目里真实存在的事实（已有依赖、code-review-graph 的使用要求）、编号要求、产出物和可自行验证的验收项。`未验证` 是第 6 条要求起了作用——模型宁愿标注没查证的第三方 API，也不编造用法。
 
 ## 会话目录（实验）
 

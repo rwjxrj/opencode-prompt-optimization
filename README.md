@@ -1,5 +1,8 @@
 # opencode-prompt-expand
 
+[![CI](https://github.com/rwjxrj/opencode-prompt-expand/actions/workflows/ci.yml/badge.svg)](https://github.com/rwjxrj/opencode-prompt-expand/actions/runs)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 ![opencode-prompt-expand featured image](assets/featured.png)
 
 Expand a rough draft in the **OpenCode Desktop** composer into a structured prompt, in place.
@@ -11,6 +14,16 @@ The plugin is a small OpenCode Desktop extension: it reads the current draft, as
 [中文说明](docs/README.zh-CN.md)
 
 **Who it is for:** OpenCode Desktop users who write natural-language prompts and want a more structured first draft without leaving the composer. It is not a TUI plugin and it does not send messages for you.
+
+## Screenshots
+
+| Composer, idle | Composer, expanding |
+|---|---|
+| ![composer with the expand button left of send](assets/screenshots/composer-idle.png) | ![gradient composer border while the model works](assets/screenshots/composer-loading.png) |
+
+The button sits left of the send button. The draft above is the one expanded in [Example output](#example-output).
+
+![Prompt Expand settings page](assets/screenshots/settings-en.png)
 
 ## What it does
 
@@ -137,6 +150,57 @@ prompt-expand.settings
 - Editing the draft resets the version stack; the next expansion starts from the edited text.
 - Toast actions are guarded: if you switched sessions or edited the text, Undo will not overwrite your changes.
 - The failure toast includes the server `code` and `message` when available, so timeout, model, and validation failures are distinguishable.
+
+## Example output
+
+Draft, typed as-is:
+
+> 帮我做一个数据看板，包含筛选和导出
+
+With **Project context** on, one run (concise mode) returned this:
+
+<details>
+<summary>Expanded prompt</summary>
+
+```markdown
+## 目标
+开发一个数据看板页面，支持对看板数据进行筛选和导出。
+
+## 范围
+- 做：数据看板的核心页面，含数据展示、筛选功能、导出功能。
+- 不做：用户登录鉴权、后台管理、数据源搭建与数据库设计、移动端适配优化。
+
+## 上下文
+- 项目已依赖 @aliou/pi-guardrails、@oh-my-pi/pi-coding-agent、pi-hermes-memory，具体如何使用由实现方判断。
+- 看板要展示的具体数据指标、数据来源、导出格式均未指定。
+- 项目有 code-review-graph 知识图谱工具，探索代码时应优先使用图谱工具而非 Grep/Glob/Read。
+
+## 要求
+1. 看板需展示关键数据指标，具体指标以现有数据为准。
+2. 提供筛选能力，至少支持按时间范围筛选，其他筛选维度可按数据特点扩展。
+3. 筛选后看板中的所有图表和数据需同步更新。
+4. 提供导出功能，将当前筛选结果下的看板数据导出为文件。
+5. 界面简洁可用，筛选控件和导出按钮位置清晰。
+6. 涉及不确定的第三方库 API 时，先查证官方文档，不确定处标注「未验证」。
+
+## 产出
+- 可运行的看板页面代码，含必要的组件划分。
+- 附简短说明：如何启动、如何配置数据来源。
+- 长度以覆盖上述功能为准，不强制页数。
+
+## 验收
+- 页面可正常打开并展示数据。
+- 更改筛选条件后数据正确刷新。
+- 导出的文件内容与当前筛选结果一致且可正常打开。
+```
+
+</details>
+
+The draft named one feature. The result states the goal, what is in and out of
+scope, the project facts that matter (existing dependencies, the
+code-review-graph preference), numbered requirements, deliverables, and
+acceptance checks you can verify yourself. `未验证` is requirement 6 in action:
+the model flags a third-party API it has not checked instead of inventing one.
 
 ## How the button is mounted
 
