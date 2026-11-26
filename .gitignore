@@ -30,3 +30,6 @@ desktop.ini
 # local agent scratch
 .claude/
 .opencode/
+
+# repository instructions kept local only
+AGENTS.md
