@@ -1,12 +1,11 @@
-import { ComposerPill, Plugin, SettingsPage, Slot } from "@opencode/plugin/gui"
-import { Show } from "solid-js"
+import { Plugin, SettingsPage, Style } from "@opencode/plugin/gui"
 import { registerCommands } from "./gui/commands.js"
 import { createController } from "./gui/controller.js"
 import { definition } from "./gui/definition.js"
-import { createDraftComposer, DRAFT_KEY } from "./gui/draft.js"
+import { createDraftComposer } from "./gui/draft.js"
 import { registerOutline } from "./gui/outline.js"
-import { createPill } from "./gui/pill.js"
-import { createSettingsPage } from "./gui/settings.js"
+import { createSettingsPage, SETTINGS_STYLE } from "./gui/settings.js"
+import { mountToolbarButton } from "./gui/toolbar.js"
 
 const setup: Plugin.Setup<typeof definition> = (ctx) => {
   const draft = createDraftComposer()
@@ -14,51 +13,10 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
   const outline = registerOutline(ctx)
 
   registerCommands(ctx, controller, outline)
-  ctx.add(ComposerPill, createPill(ctx, controller))
   ctx.add(SettingsPage, createSettingsPage(ctx))
+  ctx.add(Style, SETTINGS_STYLE)
 
-  // Home and draft sessions have no official composer API, so the session
-  // ComposerPill never renders there. This bottom strip is the fallback entry:
-  // it is visible only when there is no mounted session, and uses the DOM
-  // adapter in gui/draft.ts.
-  ctx.add(Slot, {
-    at: "window.bottom",
-    render: () => (
-      <Show
-        when={
-          !ctx.screen.current() &&
-          !ctx.router.path().startsWith("/settings") &&
-          !ctx.router.path().startsWith("/plugins")
-        }
-      >
-        <div
-          style={{
-            display: "flex",
-            "justify-content": "center",
-            padding: "6px 0",
-          }}
-        >
-          <button
-            type="button"
-            disabled={controller.busy(DRAFT_KEY)}
-            onClick={() => void controller.expand()}
-            style={{
-              "font-size": "13px",
-              padding: "5px 12px",
-              "border-radius": "999px",
-              border: "1px solid rgba(127, 127, 127, 0.35)",
-              background: "transparent",
-              color: "inherit",
-              cursor: controller.busy(DRAFT_KEY) ? "default" : "pointer",
-              opacity: controller.busy(DRAFT_KEY) ? 0.65 : 1,
-            }}
-          >
-            {controller.busy(DRAFT_KEY) ? ctx.t("pill.expanding") : ctx.t("pill.expand")}
-          </button>
-        </div>
-      </Show>
-    ),
-  })
+  return mountToolbarButton(ctx, controller)
 }
 
 export default Plugin.define({

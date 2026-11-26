@@ -1,7 +1,7 @@
-import type { ComposerPillView, SetupContext } from "@opencode/plugin/gui"
+import type { SetupContext } from "@opencode/plugin/gui"
 import { createStore } from "solid-js/store"
 import { resolveConfig } from "../config.js"
-import { countChars, shouldSkip } from "../optimizer.js"
+import { countChars, maskReferences, restoreReferences, shouldSkip } from "../optimizer.js"
 import { PromptExpand } from "../rpc.js"
 import type { OptimizeResult } from "../types.js"
 import type { definition } from "./definition.js"
@@ -12,15 +12,16 @@ import { RunStore } from "./state.js"
 type Ctx = SetupContext<typeof definition>
 type Target = { key: string; composer: TargetComposer; directory?: string }
 
+/** How an expand attempt ended, so the toolbar can show success feedback. */
+export type ExpandOutcome = "done" | "skipped" | "failed"
+
 export type Controller = {
-  expand(input?: string, sessionID?: string): Promise<void>
-  regenerate(sessionID?: string): Promise<void>
+  expand(input?: string, sessionID?: string): Promise<ExpandOutcome>
+  regenerate(sessionID?: string): Promise<ExpandOutcome>
   restore(sessionID?: string): void
   previous(sessionID?: string): void
   next(sessionID?: string): void
   toggleMode(): void
-  busy(sessionID: string): boolean
-  pill(sessionID: string): ComposerPillView
 }
 
 export function createController(ctx: Ctx, draft: DraftComposer): Controller {
@@ -119,13 +120,7 @@ export function createController(ctx: Ctx, draft: DraftComposer): Controller {
 
   function notifySkip(reason: string | undefined, notify: boolean) {
     if (!notify) return
-    if (reason === "too_short") {
-      info("toast.tooShort")
-      return
-    }
-    if (reason === "mention") {
-      info("toast.mention")
-    }
+    if (reason === "too_short") info("toast.tooShort")
   }
 
   function undo(sessionID: string, written: string, original: string) {
@@ -147,21 +142,23 @@ export function createController(ctx: Ctx, draft: DraftComposer): Controller {
     }
   }
 
-  async function expand(input?: string, sessionID?: string): Promise<void> {
+  async function expand(input?: string, sessionID?: string): Promise<ExpandOutcome> {
     const current = target(sessionID)
-    if (!current) return
-    if (busy[current.key]) return
+    if (!current) return "skipped"
+    if (busy[current.key]) return "skipped"
 
     const config = currentConfig()
+    const variant = ctx.stores.prefs.value.variant?.trim()
     const hasInput = typeof input === "string" && input.trim().length > 0
     const text = hasInput ? input!.trim() : current.composer.text()
 
-    if (!text.trim()) return
+    if (!text.trim()) return "skipped"
 
+    const masked = maskReferences(text)
     const decision = shouldSkip(text, config)
     if (decision.skip) {
       notifySkip(decision.reason, decision.notify)
-      return
+      return "skipped"
     }
 
     const run = hasInput
@@ -178,13 +175,13 @@ export function createController(ctx: Ctx, draft: DraftComposer): Controller {
 
     if (round > config.maxRounds) {
       info("toast.limit")
-      return
+      return "skipped"
     }
 
     setBusy(current.key, true)
     try {
       const result = (await ctx.client.rpc(PromptExpand).optimize({
-        text,
+        text: masked.text,
         mode: config.mode,
         round,
         ...(previous ? { previous } : {}),
@@ -192,6 +189,7 @@ export function createController(ctx: Ctx, draft: DraftComposer): Controller {
         ...(current.directory ? { directory: current.directory } : {}),
         ...(current.composer.model() ? { composerModel: current.composer.model() } : {}),
         modelPreference: config.model,
+        ...(variant ? { variant } : {}),
         projectContext: config.projectContext,
       })) as OptimizeResult
 
@@ -203,15 +201,22 @@ export function createController(ctx: Ctx, draft: DraftComposer): Controller {
         } else {
           error("toast.failed", "toast.failedDesc", detail)
         }
-        return
+        return "failed"
       }
 
-      current.composer.setText(result.text)
+      const restored = restoreReferences(result.text, masked.refs)
+      if (restored === undefined) {
+        console.error("[prompt-expand] optimize failed: references changed by the model")
+        error("toast.failed", "toast.reference")
+        return "failed"
+      }
+
+      current.composer.setText(restored)
       current.composer.focus()
-      store.push(current.key, run.original, result.text)
+      store.push(current.key, run.original, restored)
 
       const before = countChars(run.original)
-      const after = countChars(result.text)
+      const after = countChars(restored)
       ctx.toast.show({
         title: ctx.t("toast.expanded"),
         description: `${before} → ${after} ${ctx.t("toast.chars")}`,
@@ -220,7 +225,7 @@ export function createController(ctx: Ctx, draft: DraftComposer): Controller {
         actions: [
           {
             label: ctx.t("action.undo"),
-            run: () => undo(current.key, result.text, run.original),
+            run: () => undo(current.key, restored, run.original),
           },
           {
             label: ctx.t("action.regenerate"),
@@ -228,16 +233,18 @@ export function createController(ctx: Ctx, draft: DraftComposer): Controller {
           },
         ],
       })
+      return "done"
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : String(cause)
       console.error("[prompt-expand] expand failed:", message)
       error("toast.failed", "toast.failedDesc", message)
+      return "failed"
     } finally {
       setBusy(current.key, false)
     }
   }
 
-  function regenerate(sessionID?: string): Promise<void> {
+  function regenerate(sessionID?: string): Promise<ExpandOutcome> {
     return expand(undefined, sessionID)
   }
 
@@ -302,20 +309,6 @@ export function createController(ctx: Ctx, draft: DraftComposer): Controller {
     info(next === "concise" ? "toast.modeConcise" : "toast.modeFull")
   }
 
-  function isBusy(sessionID: string): boolean {
-    return busy[sessionID] === true
-  }
-
-  function pill(sessionID: string): ComposerPillView {
-    if (isBusy(sessionID)) {
-      return { label: ctx.t("pill.expanding"), tone: "success" }
-    }
-    return {
-      label: ctx.t("pill.expand"),
-      run: () => void expand(undefined, sessionID),
-    }
-  }
-
   return {
     expand,
     regenerate,
@@ -323,7 +316,5 @@ export function createController(ctx: Ctx, draft: DraftComposer): Controller {
     previous: (sessionID?: string) => step(-1, sessionID),
     next: (sessionID?: string) => step(1, sessionID),
     toggleMode,
-    busy: isBusy,
-    pill,
   }
 }

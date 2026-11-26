@@ -16,9 +16,10 @@ npm run smoke:gui
 
 - Keep the server, RPC, and GUI boundaries intact: the window process must not call a model directly, and the server process must not touch the composer.
 - Add or update tests when changing bypass rules, model selection, prompt building, version state, or RPC error handling.
-- Do not add telemetry, remote logging, or author-operated proxies.
+- Do not add telemetry, remote logging, or maintainer-operated proxies.
 - Keep project-context reads inside the whitelist in `src/project-context.ts`.
-- Update `README.md` and `CHANGELOG.md` for user-visible behavior.
+- Update `README.md`, `docs/README.zh-CN.md`, and `CHANGELOG.md` for user-visible behavior.
+- Keep `AGENTS.md` current when commands, module boundaries, or host markup change.
 
 ## Compatibility
 

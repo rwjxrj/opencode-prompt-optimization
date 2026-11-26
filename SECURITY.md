@@ -15,4 +15,4 @@ The plugin:
 - does not operate a proxy, telemetry endpoint, or credential store
 - reads only the project-context whitelist described in `README.md`
 
-The Home/draft fallback uses a DOM adapter because OpenCode does not expose a draft composer API. Treat that path as experimental.
+The Home/draft fallback uses a DOM adapter because OpenCode does not expose a draft composer API. Treat that path as experimental. The composer toolbar button and the session outline also depend on undocumented host markup.

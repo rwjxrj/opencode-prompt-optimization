@@ -10,7 +10,6 @@ export type Config = {
   minChars: number
   maxPromptChars: number
   skipPatterns: RegExp[]
-  skipOnMentions: boolean
   projectContext: boolean
   projectContextBudget: number
   draftFallback: boolean
@@ -39,7 +38,6 @@ export const DEFAULT_CONFIG: Config = {
   minChars: 10,
   maxPromptChars: 6000,
   skipPatterns: DEFAULT_SKIP_PATTERNS,
-  skipOnMentions: true,
   projectContext: true,
   projectContextBudget: 2048,
   draftFallback: true,
@@ -92,7 +90,6 @@ export function resolveConfig(options: PluginOptions = {}, overrides: ConfigOver
     minChars: numberOption(options.minChars, DEFAULT_CONFIG.minChars, 1),
     maxPromptChars: numberOption(options.maxPromptChars, DEFAULT_CONFIG.maxPromptChars, 1),
     skipPatterns: compilePatterns(options.skipPatterns),
-    skipOnMentions: booleanOption(options.skipOnMentions, DEFAULT_CONFIG.skipOnMentions),
     projectContext: booleanOption(projectContext, DEFAULT_CONFIG.projectContext),
     projectContextBudget: numberOption(
       options.projectContextBudget,

@@ -9,6 +9,7 @@
 ## Verification
 
 - [ ] `npm run verify`
+- [ ] Docs updated (`README.md`, `docs/README.zh-CN.md`, `CHANGELOG.md`) when behavior changed
 - [ ] Tested with OpenCode Desktop version:
 - [ ] Tested in a mounted session
 - [ ] Tested on Home / new-session draft (if relevant)

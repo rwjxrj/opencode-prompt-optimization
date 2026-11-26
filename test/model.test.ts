@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { composerToRef, isCheapChat, parseExplicitModel, pickModel } from "../src/model.js"
+import { composerToRef, isCheapChat, modelTags, parseExplicitModel, pickModel } from "../src/model.js"
 import type { ModelInfoLike } from "../src/types.js"
 
 const models: ModelInfoLike[] = [
@@ -103,5 +103,18 @@ describe("pickModel", () => {
 
   it("returns null without any model", () => {
     expect(pickModel({ preference: "auto", models: [] })).toBeNull()
+  })
+})
+
+describe("modelTags", () => {
+  it("tags reasoning and fast variants", () => {
+    expect(modelTags("deepseek-r1")).toEqual(["reasoning"])
+    expect(modelTags("o3-mini")).toEqual(["reasoning", "fast"])
+    expect(modelTags("gemini-2.0-flash")).toEqual(["fast"])
+  })
+
+  it("leaves plain models untagged", () => {
+    expect(modelTags("gpt-4o")).toEqual([])
+    expect(modelTags("claude-sonnet-4.5")).toEqual([])
   })
 })

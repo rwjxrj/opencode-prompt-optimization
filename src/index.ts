@@ -2,10 +2,18 @@ import { Plugin } from "@opencode/plugin"
 import { resolveConfig } from "./config.js"
 import { buildPrompt } from "./prompts.js"
 import { cleanOutput, shouldSkip, validateOutput } from "./optimizer.js"
-import { pickModel } from "./model.js"
+import { pickModel, modelTags } from "./model.js"
 import { readProjectContext, resolveProjectDirectory } from "./project-context.js"
 import { PromptExpand } from "./rpc.js"
-import type { ModelInfoLike, ModelRef, OptimizeInput, OptimizeResult, VcsSummary } from "./types.js"
+import type {
+  CatalogModel,
+  CatalogResult,
+  ModelInfoLike,
+  ModelRef,
+  OptimizeInput,
+  OptimizeResult,
+  VcsSummary,
+} from "./types.js"
 
 class TimeoutError extends Error {
   constructor() {
@@ -54,6 +62,90 @@ function modelRefFromSession(session: any): ModelRef | undefined {
   }
 }
 
+async function readModels(ctx: any): Promise<ModelInfoLike[]> {
+  try {
+    const listed = (await ctx.model.list()) as unknown as ModelInfoLike[] | { data?: ModelInfoLike[] }
+    return Array.isArray(listed) ? listed : Array.isArray(listed?.data) ? listed.data : []
+  } catch {
+    return []
+  }
+}
+
+async function readDefaultModel(ctx: any): Promise<ModelInfoLike | null> {
+  try {
+    const selected = (await ctx.model.default()) as unknown as
+      | ModelInfoLike
+      | { data?: ModelInfoLike | null }
+      | null
+    return selected && "data" in selected ? (selected.data ?? null) : (selected as ModelInfoLike | null)
+  } catch {
+    return null
+  }
+}
+
+type CatalogSourceModel = ModelInfoLike & {
+  limit?: { context?: number }
+  variants?: ReadonlyArray<string | { id?: string }>
+}
+type CatalogSourceProvider = { id: string; name?: string; activation?: string }
+
+async function readProviders(ctx: any): Promise<CatalogSourceProvider[]> {
+  try {
+    const listed = (await ctx.provider.list({})) as unknown as
+      | CatalogSourceProvider[]
+      | { data?: CatalogSourceProvider[] }
+    const data = Array.isArray(listed) ? listed : Array.isArray(listed?.data) ? listed.data : []
+    return data.filter((provider) => typeof provider?.id === "string")
+  } catch {
+    return []
+  }
+}
+
+async function readCatalog(ctx: any): Promise<CatalogResult> {
+  const [providers, models, defaultModel] = await Promise.all([
+    readProviders(ctx),
+    readModels(ctx),
+    readDefaultModel(ctx),
+  ])
+  const names = new Map(providers.map((provider) => [provider.id, provider.name]))
+  const disabled = new Set(
+    providers.filter((provider) => provider.activation === "disabled").map((provider) => provider.id),
+  )
+  const recommended = defaultModel ? `${defaultModel.providerID}/${defaultModel.id}` : ""
+  const grouped = new Map<string, CatalogModel[]>()
+
+  for (const model of models as CatalogSourceModel[]) {
+    if (!model?.id || !model.providerID) continue
+    if (disabled.has(model.providerID)) continue
+    if (model.enabled === false || model.status === "deprecated") continue
+    if (model.type && model.type !== "chat") continue
+
+    const entry: CatalogModel = {
+      id: model.id,
+      name: model.name || model.id,
+      tags: modelTags(model.id, model.name),
+      variants: (model.variants ?? [])
+        .map((variant) => (typeof variant === "string" ? variant : (variant?.id ?? "")))
+        .filter(Boolean),
+      ...(model.limit?.context ? { context: model.limit.context } : {}),
+      ...(recommended === `${model.providerID}/${model.id}` ? { recommended: true } : {}),
+    }
+    const bucket = grouped.get(model.providerID)
+    if (bucket) bucket.push(entry)
+    else grouped.set(model.providerID, [entry])
+  }
+
+  return {
+    providers: [...grouped.entries()]
+      .map(([id, models]) => ({
+        id,
+        name: names.get(id) ?? id,
+        models: models.sort((left, right) => left.name.localeCompare(right.name)),
+      }))
+      .sort((left, right) => left.name.localeCompare(right.name)),
+  }
+}
+
 export default Plugin.define({
   id: "prompt-expand",
   async setup(ctx) {
@@ -85,19 +177,7 @@ export default Plugin.define({
         let models: ModelInfoLike[] = []
         let defaultModel: ModelInfoLike | null = null
         try {
-          const listed = (await ctx.model.list()) as unknown as
-            | ModelInfoLike[]
-            | { data?: ModelInfoLike[] }
-          models = Array.isArray(listed) ? listed : Array.isArray(listed?.data) ? listed.data : []
-
-          const selected = (await ctx.model.default()) as unknown as
-            | ModelInfoLike
-            | { data?: ModelInfoLike | null }
-            | null
-          defaultModel =
-            selected && "data" in selected
-              ? (selected.data ?? null)
-              : (selected as ModelInfoLike | null)
+          ;[models, defaultModel] = await Promise.all([readModels(ctx), readDefaultModel(ctx)])
         } catch {
           models = []
           defaultModel = null
@@ -143,6 +223,7 @@ export default Plugin.define({
         }
 
         const targetModelID = input.composerModel?.modelID ?? sessionModel?.id
+        const model = input.variant ? { ...picked.model, variant: input.variant } : picked.model
         const prompt = buildPrompt({
           text: input.text,
           mode: config.mode,
@@ -157,7 +238,7 @@ export default Plugin.define({
         try {
           const generated = await withTimeout(
             ctx.experimental.generate.text({
-              model: picked.model,
+              model,
               prompt,
             }),
             config.timeoutMs,
@@ -176,7 +257,7 @@ export default Plugin.define({
           return {
             ok: true,
             text: cleaned,
-            model: `${picked.model.providerID}/${picked.model.id}`,
+            model: `${model.providerID}/${model.id}`,
           }
         } catch (error) {
           if (rpcContext?.signal?.aborted) {
@@ -190,6 +271,7 @@ export default Plugin.define({
           return { ok: false, code: "failed", message: `Expansion failed: ${message}` }
         }
       },
+      catalog: async (): Promise<CatalogResult> => readCatalog(ctx),
     })
 
     return () => registration.dispose()

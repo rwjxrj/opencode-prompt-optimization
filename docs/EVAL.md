@@ -2,7 +2,7 @@
 
 Use these 10 drafts to check whether the expansion preserves the original goal while adding scope, constraints, output, and acceptance criteria.
 
-Run each draft through the pill or `/expand`, then score it:
+Run each draft through the toolbar icon, the command palette, or `/expand`, then score it:
 
 - **Goal preserved** — no new task, no narrowed task
 - **Scope added** — what is in and out

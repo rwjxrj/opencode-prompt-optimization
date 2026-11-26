@@ -7,7 +7,6 @@ export type SkipReason =
   | "too_long"
   | "confirmation"
   | "pattern"
-  | "mention"
 
 export type SkipDecision = {
   skip: boolean
@@ -19,10 +18,37 @@ export type SkipDecision = {
 const STRUCTURE_MARKERS = [/目标/, /范围/, /要求/, /验收/]
 
 const CONFIRMATION = /^(继续|好的|收到|谢谢|可以|ok|okay|yes|no|go|continue|thanks?)[。.!！]?$/i
-const MENTION = /(^|\s)@[\w./\\-]{2,}/
+// A leading slash reference is a command; `@` references are file/skill chips.
+// Both end at whitespace or punctuation, so the sentence after a reference is still prose.
+const REF = String.raw`[^\s，。；：！？、（）【】「」《》“”‘’,;!?]+`
+const COMMAND = new RegExp(`^(\\s*)(/${REF})`)
+const MENTION = new RegExp(`(^|\\s)(@${REF})`, "g")
+const PLACEHOLDER = /\[\[ref\d+\]\]/g
 
-export function detectMention(text: string): boolean {
-  return MENTION.test(text)
+export type References = {
+  text: string
+  refs: string[]
+}
+
+/** Replaces `@refs` and a leading `/command` with `[[refN]]` so the model cannot rewrite them. */
+export function maskReferences(text: string): References {
+  const refs: string[] = []
+  const mask = (_match: string, lead: string, ref: string): string => {
+    refs.push(ref)
+    return `${lead}[[ref${refs.length}]]`
+  }
+  return { text: text.replace(COMMAND, mask).replace(MENTION, mask), refs }
+}
+
+/** Puts the references back; undefined when the model dropped, duplicated or invented a placeholder. */
+export function restoreReferences(text: string, refs: string[]): string | undefined {
+  let restored = text
+  for (let index = 0; index < refs.length; index += 1) {
+    const placeholder = `[[ref${index + 1}]]`
+    if (!restored.includes(placeholder)) return undefined
+    restored = restored.replace(placeholder, refs[index]!)
+  }
+  return restored.match(PLACEHOLDER) ? undefined : restored
 }
 
 export function countStructureMarkers(text: string): number {
@@ -38,23 +64,23 @@ export function shouldSkip(text: string, config: Config): SkipDecision {
   const structured = hasStructure(trimmed)
 
   if (!trimmed) return { skip: true, reason: "empty", notify: false, structured }
-  if (/^\s*[\/!]/.test(trimmed)) {
-    return { skip: true, reason: "command", notify: false, structured }
-  }
-  if (CONFIRMATION.test(trimmed)) {
+
+  // Length limits count the whole draft, references included: a short instruction
+  // with a @file is still a real request, while a bare reference is not.
+  const masked = maskReferences(trimmed)
+  const prose = masked.text.replace(PLACEHOLDER, "").trim()
+  if (!prose) return { skip: true, reason: "command", notify: false, structured }
+  if (CONFIRMATION.test(prose)) {
     return { skip: true, reason: "confirmation", notify: false, structured }
+  }
+  if (config.skipPatterns.some((pattern) => pattern.test(prose))) {
+    return { skip: true, reason: "pattern", notify: false, structured }
   }
   if (countChars(trimmed) < config.minChars) {
     return { skip: true, reason: "too_short", notify: true, structured }
   }
   if (countChars(trimmed) > config.maxPromptChars) {
     return { skip: true, reason: "too_long", notify: false, structured }
-  }
-  if (config.skipPatterns.some((pattern) => pattern.test(trimmed))) {
-    return { skip: true, reason: "pattern", notify: false, structured }
-  }
-  if (config.skipOnMentions && detectMention(trimmed)) {
-    return { skip: true, reason: "mention", notify: true, structured }
   }
 
   return { skip: false, notify: false, structured }

@@ -42,12 +42,32 @@ export type OptimizeInput = {
   directory?: string
   composerModel?: ComposerModel
   modelPreference?: string
+  variant?: string
   projectContext?: boolean
 }
 
 export type OptimizeResult =
   | { ok: true; text: string; model?: string }
   | { ok: false; code: string; message: string }
+
+export type CatalogModel = {
+  id: string
+  name: string
+  context?: number
+  tags: Array<"reasoning" | "fast">
+  variants: string[]
+  recommended?: boolean
+}
+
+export type CatalogProvider = {
+  id: string
+  name: string
+  models: CatalogModel[]
+}
+
+export type CatalogResult = {
+  providers: CatalogProvider[]
+}
 
 export type Run = {
   original: string

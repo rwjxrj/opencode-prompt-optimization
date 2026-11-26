@@ -10,17 +10,13 @@ const toasts = []
 const rpcInputs = []
 
 const commandToken = { kind: "command" }
-const pillToken = { kind: "pill" }
 const settingsToken = { kind: "settings" }
-const slotToken = { kind: "slot" }
 const panelToken = { kind: "panel" }
 const menuToken = { kind: "menu" }
 const styleToken = { kind: "style" }
 const hostStub = {
   Command: commandToken,
-  ComposerPill: pillToken,
   SettingsPage: settingsToken,
-  Slot: slotToken,
   Panel: panelToken,
   MenuItem: menuToken,
   Style: styleToken,
@@ -118,9 +114,7 @@ const ctx = {
 plugin.setup(ctx)
 
 const commands = registered.filter((entry) => entry.token === commandToken).map((entry) => entry.value)
-const pill = registered.find((entry) => entry.token === pillToken)?.value
 const settings = registered.find((entry) => entry.token === settingsToken)?.value
-const slot = registered.find((entry) => entry.token === slotToken)?.value
 const panel = registered.find((entry) => entry.token === panelToken)?.value
 
 function command(id) {
@@ -135,13 +129,25 @@ async function tick() {
 
 async function main() {
   if (commands.length !== 9) throw new Error(`expected 9 commands, got ${commands.length}`)
-  if (!pill || pill.id !== "expand") throw new Error("missing composer pill")
   if (!settings || settings.id !== "prompt-expand") throw new Error("missing settings page")
-  if (!slot || slot.at !== "window.bottom" || typeof slot.render !== "function") {
-    throw new Error("missing draft fallback slot")
-  }
   if (!panel || panel.id !== "outline" || panel.region !== "side") {
     throw new Error("missing session outline panel")
+  }
+  const toolbarStyle = registered.find(
+    (entry) => entry.token === styleToken && entry.value.includes(".pe-ring"),
+  )?.value
+  if (!toolbarStyle) {
+    throw new Error("missing toolbar style registration")
+  }
+  for (const marker of ['form[data-component="composer"][data-pe-state="loading"]', ".pe-check", "@property --pe-angle"]) {
+    if (!toolbarStyle.includes(marker)) throw new Error(`toolbar style missing ${marker}`)
+  }
+  const settingsStyle = registered.find(
+    (entry) => entry.token === styleToken && entry.value.includes(".pe-settings"),
+  )?.value
+  if (!settingsStyle) throw new Error("missing settings style registration")
+  for (const marker of [".pe-popover", ".pe-switch", ".pe-trigger"]) {
+    if (!settingsStyle.includes(marker)) throw new Error(`settings style missing ${marker}`)
   }
 
   const menu = registered.find((entry) => entry.token === menuToken)?.value
@@ -195,11 +201,6 @@ async function main() {
   undo.run()
   if (composerText !== "帮我做一个数据看板，包含筛选和导出") {
     throw new Error(`undo failed: ${composerText}`)
-  }
-
-  const idlePill = pill.show({ session: { id: "ses_test" }, screen: { composer } })
-  if (idlePill.label !== "pill.expand" || typeof idlePill.run !== "function") {
-    throw new Error("pill should be an expand action when idle")
   }
 
   console.log("GUI smoke test passed")

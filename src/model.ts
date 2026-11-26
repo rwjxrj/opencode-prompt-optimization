@@ -44,6 +44,17 @@ function baseCost(model: ModelInfoLike) {
   return model.cost.find((tier) => !tier.tier) ?? model.cost[0]
 }
 
+const REASONING = /(^|[-_.])(reason(er|ing)?|think(ing)?|o[134]|r1)([-_.\s]|$)/i
+const FAST = /(^|[-_.])(flash|mini|nano|small|lite|haiku|instant|turbo|spark)([-_.\s]|$)/i
+
+export function modelTags(id: string, name?: string): Array<"reasoning" | "fast"> {
+  const text = `${id} ${name ?? ""}`
+  const tags: Array<"reasoning" | "fast"> = []
+  if (REASONING.test(text)) tags.push("reasoning")
+  if (FAST.test(text)) tags.push("fast")
+  return tags
+}
+
 export function isCheapChat(model: ModelInfoLike): boolean {
   if (model.enabled === false) return false
   if (model.status === "deprecated") return false

@@ -6,7 +6,7 @@ Expand a rough draft in the **OpenCode Desktop** composer into a structured prom
 
 The plugin is a small OpenCode Desktop extension: it reads the current draft, asks your own connected model to expand it, writes the result back into the composer, and leaves the send action to you. It never sends a message, never writes session history, and never proxies model credentials.
 
-**Status:** `v0.2.0` experimental. The package is published on npm. The OpenCode Desktop GUI plugin API is still marked experimental upstream; pin the OpenCode version you test against.
+**Status:** experimental, source install only — this fork is not published to npm. The package version is `0.2.0`, plus the changes listed under *Unreleased* in [CHANGELOG.md](CHANGELOG.md). The OpenCode Desktop GUI plugin API is still marked experimental upstream; pin the OpenCode version you test against.
 
 [中文说明](docs/README.zh-CN.md)
 
@@ -20,6 +20,7 @@ The plugin is a small OpenCode Desktop extension: it reads the current draft, as
 - Adds toast actions for **Undo** and **Regenerate**.
 - Can read a small, whitelisted set of project facts to make the expansion more specific.
 - Supports a concise mode (~800 characters) and a full-expansion mode.
+- Ships English and Simplified Chinese UI text.
 - Ships an optional **session outline** panel that lists your messages on the right and scrolls to one when clicked.
 
 It does not:
@@ -27,7 +28,7 @@ It does not:
 - send the prompt
 - modify session history
 - read `.env`, keys, or source files
-- call the plugin author's servers
+- call any server other than your own model provider
 
 ## Requirements
 
@@ -37,10 +38,10 @@ It does not:
 
 The TUI is not supported. The GUI composer API used here is only available in OpenCode Desktop.
 
-## Install from GitHub
+## Install from source
 
 ```bash
-git clone https://github.com/ConnorYyy/opencode-prompt-expand.git
+git clone https://github.com/rwjxrj/opencode-prompt-expand.git
 cd opencode-prompt-expand
 npm ci
 ```
@@ -70,8 +71,7 @@ Add the plugin to the **global** OpenCode config. Desktop reads GUI plugins only
         "mode": "concise",
         "model": "auto",
         "projectContext": true,
-        "timeoutMs": 30000,
-        "outline": false
+        "timeoutMs": 30000
       }
     }
   ]
@@ -90,45 +90,25 @@ Confirm the install:
 
 - **Settings > Extensions > Plugins** shows `prompt-expand` as enabled.
 - The command palette has **Expand prompt**.
-- A mounted session shows the `⚡ Expand Prompt` pill above the composer.
-- Home / new-session drafts show the bottom `⚡ Expand Prompt` button (see below).
-
-### Install from npm
-
-Install it with the OpenCode CLI:
-
-```bash
-opencode plugin add opencode-prompt-expand
-```
-
-Pin a specific version when needed:
-
-```bash
-opencode plugin add opencode-prompt-expand@0.1.1
-```
-
-Then verify it is configured:
-
-```bash
-opencode plugin list
-```
-
-Package page: https://www.npmjs.com/package/opencode-prompt-expand
+- Every composer shows the expand icon button left of the send button; hover it for **Optimize prompt**.
 
 ## Usage
 
 1. Write a draft in the composer, for example:
    `帮我做一个数据看板，包含筛选和导出`
-2. Click `⚡ Expand Prompt`, run **Expand prompt** from the command palette, or type `/expand <text>`.
-3. Wait for the model. The draft is replaced in place.
+2. Click the icon left of the send button, run **Expand prompt** from the command palette, or type `/expand <text>`.
+3. The composer shows a moving gradient border while the model works; on success the icon turns into a green check, the border flashes green once, and both settle back to idle after about 1.5 s.
 4. Review or edit the result, then press Enter yourself.
+
+### References and commands
+
+`@file` mentions, attached references and a leading `/command` are masked as `[[ref1]]`, `[[ref2]]` before the model call and restored verbatim afterwards, so only your prose is rewritten. If the model drops, duplicates, or renames a placeholder, nothing is written and the toast says so.
 
 ### Entry points
 
 | Entry | How |
 |---|---|
-| Pill | Click `⚡ Expand Prompt` above a session composer |
-| Draft button | On Home / new-session drafts, use the bottom `⚡ Expand Prompt` button |
+| Toolbar icon | Click the icon left of the composer's send button (hover shows **Optimize prompt**) |
 | Command palette | Search `Expand prompt` |
 | Slash command | `/expand <text>` |
 | Regenerate | Toast action, or command palette **Regenerate prompt** |
@@ -136,6 +116,7 @@ Package page: https://www.npmjs.com/package/opencode-prompt-expand
 | Previous / next version | Command palette **Previous expanded version** / **Next expanded version** |
 | Toggle mode | Command palette **Toggle expansion mode** |
 | Session outline | Command palette **Toggle session outline**, or the side panel `+` menu |
+| Settings | Command palette **Prompt Expand settings** |
 
 There are **no default keyboard shortcuts**. Commands are registered in **Settings > Shortcuts**; assign your own:
 
@@ -157,11 +138,11 @@ prompt-expand.settings
 - Toast actions are guarded: if you switched sessions or edited the text, Undo will not overwrite your changes.
 - The failure toast includes the server `code` and `message` when available, so timeout, model, and validation failures are distinguishable.
 
-## Home and new-session drafts
+## How the button is mounted
 
-The official `ctx.screen.current()?.composer` API is `undefined` on Home and on a draft session; `Sessions.current()` is also `undefined` there. The session `ComposerPill` therefore cannot render before the first message creates a mounted session.
+The Desktop GUI API has no composer-toolbar slot, so the expand icon button is a **best-effort DOM injection**: it finds the composer's submit button (`[data-action=composer-submit]` inside `[data-slot=composer-actions]`), inserts itself directly left of it, and re-mounts when the host re-renders.
 
-For those pages the plugin adds a bottom `⚡ Expand Prompt` button. Because no official draft composer API exists, it uses a **best-effort DOM adapter**:
+On Home and on a draft session `ctx.screen.current()?.composer` and `Sessions.current()` are `undefined`, so reading and writing the draft uses a second **DOM adapter**:
 
 - it finds the bottom-most visible `textarea`, text input, or contenteditable;
 - it reads and writes that element directly;
@@ -170,12 +151,11 @@ For those pages the plugin adds a bottom `⚡ Expand Prompt` button. Because no 
 
 Impact and limits:
 
-- It is not an official OpenCode API and may break if the Desktop composer changes.
+- Neither part is an official OpenCode API and both may break if the Desktop composer DOM changes.
 - It may fail on a complex rich-text composer or if the editor changes during the model call.
-- `@` mentions and attachments are not supported on drafts.
+- `@` mentions are text in drafts: the draft adapter writes plain text, so a mention chip becomes `@path` text.
 - The draft has no composer model, so the model comes from the server default or your configured model.
-- Disable it with `draftFallback: false` if you only want to expand in mounted sessions.
-- After the first message creates a session, the normal composer pill is used.
+- Disable the draft adapter with `draftFallback: false` if you only want to expand in mounted sessions.
 
 ## Session outline (experimental)
 
@@ -195,9 +175,13 @@ Open **Settings > Prompt Expand**, or run **Prompt Expand settings** from the co
 | Setting | Description |
 |---|---|
 | Mode | `concise` (~800 chars) or `full` |
-| Model | `auto`, `composer`, `provider/model`, or empty |
+| Model | Full-width picker: search a connected provider/model, or type `provider/model` and use it directly |
+| Thinking | Reasoning effort for expansions; empty follows the composer's variant |
 | Project context | Read `package.json`, rule files, and git status |
 | Session outline | Experimental right-side message list with click-to-scroll |
+| Toolbar animation | Animate the icon while a draft is expanded (on by default) |
+
+The model picker loads the provider catalog over the plugin's `catalog` RPC, so the GUI stays on public plugin APIs. Leaving it empty shows a muted placeholder and follows `opencode.jsonc`; `auto` and `composer` are preset pills in the picker.
 
 Settings persist through `Store.global`. An unset field, or a model field of `auto`, follows the `options` from `opencode.jsonc`; an explicit setting overrides it. This matters on Home/draft pages, where no composer model is available.
 
@@ -212,14 +196,12 @@ Options are passed through the plugin entry:
 | `maxRounds` | `5` | Total generations per draft, including v1 |
 | `timeoutMs` | `30000` | Abort and leave the composer untouched after this long |
 | `maxGrowth` | `5` | Reject output larger than `original × maxGrowth` **and** > 2000 chars |
-| `minChars` | `10` | Below this, skip |
+| `minChars` | `10` | Below this, skip (the whole draft, references included) |
 | `maxPromptChars` | `6000` | Above this, skip |
 | `skipPatterns` | built-in | Array of regex strings; replaces the built-in list |
-| `skipOnMentions` | `true` | Skip drafts containing `@path` |
 | `projectContext` | `true` | Read project facts |
 | `projectContextBudget` | `2048` | Character budget for injected context |
 | `draftFallback` | `true` | Enable the DOM fallback on Home / new-session drafts |
-| `outline` | `false` | Enable the experimental session outline panel |
 | `prompts` | built-in | Map of glob → prompt; `*gpt*` and `*claude*` included |
 
 ### Model selection
@@ -227,6 +209,8 @@ Options are passed through the plugin entry:
 - `composer` uses the model currently selected in the composer.
 - `auto` prefers the composer model, then the session model, then the server default, then a cheap chat model.
 - Explicit `provider/model` is used as-is.
+- The settings picker writes `provider/model`, `auto`, `composer`, or empty back into the same field.
+- The Thinking selector in the picker toolbar lists the model's variants (from its `reasoningEffort` settings). Empty follows the composer; a chosen value is sent as the request's `variant`, and the picker trigger shows the current value (`Follow composer` when empty).
 
 If `auto` falls back to a free model and that model has hit its usage limit, set the model to `composer` or an explicit paid model.
 
@@ -248,7 +232,7 @@ The directory is resolved from the mounted session first, then the directory sup
 - The plugin does not persist drafts, keys, or credentials.
 - It does not send messages, write session history, or occupy the session context window.
 - Project context never reads `.env`, `.pem`, `credentials*`, or source files.
-- The plugin has no telemetry and no author-operated proxy.
+- The plugin has no telemetry and no maintainer-operated proxy.
 
 ## Development
 
@@ -263,7 +247,7 @@ npm run verify       # typecheck + tests + build + GUI smoke
 
 `src/index.ts` is the server part, `src/gui.tsx` is the Desktop GUI bundle, and `src/rpc.ts` is the shared contract.
 
-`scripts/smoke-gui.cjs` loads the built GUI bundle with stubbed host modules and exercises expand, regenerate, undo, settings, pill, and the draft fallback slot.
+`scripts/smoke-gui.cjs` loads the built GUI bundle with stubbed host modules and exercises expand, regenerate, undo, settings, toolbar and style registration, and the session outline panel.
 
 ### Project layout
 
@@ -277,8 +261,10 @@ src/
 │   ├── controller.ts     expand, regenerate, undo, versions
 │   ├── draft.ts          DOM fallback for Home / drafts
 │   ├── failure.ts        RPC error detail
-│   ├── pill.ts           composer pill
+│   ├── toolbar.ts        composer toolbar button (DOM injection)
 │   ├── settings.tsx      settings page
+│   ├── catalog.ts        provider catalog helpers for the picker
+│   ├── outline.ts        session outline panel
 │   └── state.ts          per-session version stack
 ├── optimizer.ts          bypass, cleaning, validation
 ├── prompts.ts            default and model-family prompts
@@ -289,13 +275,14 @@ src/
 
 ### CI
 
-The repository includes a GitHub Actions workflow that runs `npm ci` and `npm run verify` on Windows and Ubuntu with Node 20.19 and 22.12.
+The repository includes a GitHub Actions workflow that runs `npm ci`, `npm run verify`, and `npm pack --dry-run` on Windows and Ubuntu with Node 20.19 and 22.12.
 
 ## Limitations
 
 - The Desktop GUI plugin API is experimental. Pin `@opencode/plugin` to the OpenCode version you run.
-- The Home/draft DOM fallback is best-effort and not an official composer API.
-- `composer.setText()` replaces text and keeps attachments, but it cannot rewrite `@` mention parts. Drafts containing `@path` are skipped.
+- The composer toolbar button and the Home/draft fallback are best-effort DOM code, not official APIs.
+- `composer.setText()` replaces text and keeps attachments, but it cannot rebuild `@` mention chips; references are kept as verbatim `@path` text.
+- The Thinking selector appears only after an explicit model is picked: the settings page cannot read the composer's model on the settings route, so `auto` / `composer` / empty always mean "follow the composer".
 - There is no TUI implementation.
 - The session outline depends on undocumented timeline attributes (`data-message-id`, `message-<id>`). Unrendered messages are located by briefly scrolling the virtualised timeline; if the message is older than the loaded history, load earlier pages first.
 - A slow model can exceed `timeoutMs`; raise it if your provider is slow.
@@ -318,13 +305,13 @@ By default, `auto` prefers the composer model, then the session model, then the 
 
 Shortcuts are user-specific and can conflict with host bindings. The commands are registered in **Settings > Shortcuts**; assign the ones you want.
 
-### Why does the new-session page use a bottom button instead of a composer pill?
+### Why is the button injected into the composer instead of using a plugin slot?
 
-OpenCode does not expose an official composer API on Home or draft sessions. The bottom button is a best-effort DOM fallback and is marked experimental. Once the first message creates a mounted session, the normal composer pill is used.
+The Desktop GUI API has no slot inside the composer toolbar. The plugin finds the send button in the composer DOM and inserts an icon button before it. If the host markup changes, the button stays hidden until a composer is matched again.
 
 ### Does it support `@` file mentions?
 
-Drafts containing `@path` references are skipped because rewriting the text can desynchronize mention attachments. Plain email addresses are not treated as mentions.
+Yes. References are masked before the model call and restored verbatim, so only the prose around them changes. Plain email addresses are not treated as mentions.
 
 ### Does it store my prompts?
 
@@ -336,22 +323,17 @@ The original composer text is left unchanged. The toast includes the server `cod
 
 ### Is it free?
 
-The plugin is MIT-licensed. You pay your own model provider for generation; there is no author-operated proxy or telemetry.
+The plugin is MIT-licensed. You pay your own model provider for generation; there is no maintainer-operated proxy or telemetry.
 
 ### How is it different from a generic prompt optimizer?
 
 It works inside the OpenCode Desktop composer, writes back in place, keeps a small version stack, and can use the model you already selected. It does not require copying prompts into another chat window.
 
-## Sponsor
-
-If this plugin saves you time, you can support maintenance and testing through Buy Me a Coffee:
-
-[buymeacoffee.com/connory](https://buymeacoffee.com/connory)
-
-[![Buy Me a Coffee QR code](assets/bmc-qr.png)](https://buymeacoffee.com/connory)
-
-Scan the QR code or use the link. Support is optional; the plugin remains MIT-licensed.
-
 ## License
 
 MIT
+
+This project is a modified derivative of
+[opencode-prompt-expand](https://github.com/ConnorYyy/opencode-prompt-expand)
+by ConnorYyy, used under the MIT License. The original copyright notice is
+retained in [LICENSE](LICENSE).

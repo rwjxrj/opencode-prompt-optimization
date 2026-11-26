@@ -3,7 +3,8 @@ import { resolveConfig } from "../src/config.js"
 import {
   cleanOutput,
   countStructureMarkers,
-  detectMention,
+  maskReferences,
+  restoreReferences,
   shouldSkip,
   validateOutput,
 } from "../src/optimizer.js"
@@ -24,25 +25,65 @@ describe("shouldSkip", () => {
     expect(result.notify).toBe(true)
   })
 
-  it("skips commands silently", () => {
-    expect(shouldSkip("/expand something", config).reason).toBe("command")
-    expect(shouldSkip("!ls", config).reason).toBe("command")
+  it("skips shell commands silently", () => {
+    expect(shouldSkip("!ls", config).reason).toBe("pattern")
+    expect(shouldSkip("!ls", config).notify).toBe(false)
   })
 
   it("skips confirmation words", () => {
     expect(shouldSkip("继续", config).reason).toBe("confirmation")
   })
 
-  it("detects mentions but not email addresses", () => {
-    expect(detectMention("看下 @src/app.ts")).toBe(true)
-    expect(detectMention("发到 a@b.com")).toBe(false)
+  it("optimizes prompts that carry @ or / references", () => {
+    expect(shouldSkip("请检查 @src/app.ts 的登录实现是否正确", config).skip).toBe(false)
+    expect(shouldSkip("/comet-build 把登录页的校验逻辑补完整", config).skip).toBe(false)
   })
 
-  it("notifies on mentions", () => {
-    const result = shouldSkip("请检查 @src/app.ts 的实现", config)
+  it("stops a reference at punctuation instead of swallowing the sentence", () => {
+    const masked = maskReferences("请检查 @src/app.ts，再修复登录")
+    expect(masked.refs).toEqual(["@src/app.ts"])
+    expect(masked.text).toBe("请检查 [[ref1]]，再修复登录")
+    expect(shouldSkip("请检查 @src/app.ts，再修复登录", config).skip).toBe(false)
+  })
+
+  it("stops a leading command at punctuation too", () => {
+    const masked = maskReferences("/comet-build，把登录页的校验逻辑补完整")
+    expect(masked.refs).toEqual(["/comet-build"])
+    expect(masked.text).toBe("[[ref1]]，把登录页的校验逻辑补完整")
+  })
+
+  it("counts references toward the draft length", () => {
+    expect(shouldSkip("优化 @src/app.ts 的代码", config).skip).toBe(false)
+  })
+
+  it("skips silently when only references are left", () => {
+    const result = shouldSkip("@src/app.ts", config)
     expect(result.skip).toBe(true)
-    expect(result.reason).toBe("mention")
-    expect(result.notify).toBe(true)
+    expect(result.reason).toBe("command")
+    expect(result.notify).toBe(false)
+  })
+
+  it("masks references and restores them verbatim", () => {
+    const original = "/comet-build 请按 @src/app.ts 补登录，参考 docs/README.zh-CN.md"
+    const masked = maskReferences(original)
+    expect(masked.text).toBe("[[ref1]] 请按 [[ref2]] 补登录，参考 docs/README.zh-CN.md")
+    expect(masked.refs).toEqual(["/comet-build", "@src/app.ts"])
+    expect(restoreReferences("[[ref1]] 请按 [[ref2]] 补逻辑", masked.refs)).toBe(
+      "/comet-build 请按 @src/app.ts 补逻辑",
+    )
+    expect(restoreReferences(masked.text, masked.refs)).toBe(original)
+  })
+
+  it("leaves email addresses alone", () => {
+    expect(maskReferences("发到 a@b.com 就行").refs).toEqual([])
+  })
+
+  it("rejects output that drops or invents a reference", () => {
+    const masked = maskReferences("看下 @src/a.ts")
+    expect(masked.text).toBe("看下 [[ref1]]")
+    expect(restoreReferences("看下代码", masked.refs)).toBeUndefined()
+    expect(restoreReferences("看下 [[ref1]] 和 [[ref2]]", masked.refs)).toBeUndefined()
+    expect(restoreReferences("看下 [[ref1]] 的代码", masked.refs)).toBe("看下 @src/a.ts 的代码")
   })
 
   it("allows a normal prompt through", () => {

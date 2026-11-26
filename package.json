@@ -12,14 +12,6 @@
     "prompt-engineering",
     "desktop"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/ConnorYyy/opencode-prompt-expand.git"
-  },
-  "homepage": "https://github.com/ConnorYyy/opencode-prompt-expand#readme",
-  "bugs": {
-    "url": "https://github.com/ConnorYyy/opencode-prompt-expand/issues"
-  },
   "main": "./dist/index.js",
   "exports": {
     ".": "./dist/index.js",
