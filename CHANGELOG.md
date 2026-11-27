@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.3.0
+
 - Rename the package and repository to `opencode-prompt-optimization` (plugin id `prompt-optimization`); command ids are now `prompt-optimization.*` and the settings page id changed accordingly.
 - Document the npm and `opencode plugin add` installation methods in both READMEs.
 - Move the expand entry point to the composer toolbar: an icon button left of the send button, with the **Optimize prompt** / 「提示词优化」 tooltip.
@@ -20,6 +22,7 @@
 - End a reference at CJK/ASCII punctuation, so `请检查 @src/app.ts，再修复登录` no longer hides the rest of the sentence inside the reference.
 - Clear a stale Thinking variant when the newly picked model does not offer it, and retry the catalog load after a failure instead of caching the empty result.
 - The Settings animation toggle now also gates the composer glow, independent of the OS reduced-motion setting; a thrown expansion returns the toolbar to idle.
+- Add a tag-triggered release workflow that publishes with npm trusted publishing and creates the GitHub Release from generated notes.
 
 ## 0.2.0
 
