@@ -1,16 +1,16 @@
 <div align="center">
 
-# opencode-prompt-expand
+# opencode-prompt-optimization
 
 **Expand rough drafts into structured prompts — in place, inside the OpenCode Desktop composer.**
 
-[![CI](https://github.com/rwjxrj/opencode-prompt-expand/actions/workflows/ci.yml/badge.svg)](https://github.com/rwjxrj/opencode-prompt-expand/actions/runs)
+[![CI](https://github.com/rwjxrj/opencode-prompt-optimization/actions/workflows/ci.yml/badge.svg)](https://github.com/rwjxrj/opencode-prompt-optimization/actions/runs)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![OpenCode Desktop](https://img.shields.io/badge/OpenCode_Desktop-2.2.5-8b5cf6)
 
 [English](README.md) · [简体中文](docs/README.zh-CN.md)
 
-![opencode-prompt-expand featured banner](assets/featured.png)
+![opencode-prompt-optimization featured banner](assets/featured.png)
 
 </div>
 
@@ -28,7 +28,7 @@ The plugin is a small OpenCode Desktop extension: it reads the current draft, as
 
 The button sits left of the send button. The draft above is the one expanded in [Example output](#example-output).
 
-![Prompt Expand settings page](assets/screenshots/settings-en.png)
+![Prompt Optimization settings page](assets/screenshots/settings-en.png)
 
 ## What it does
 
@@ -59,8 +59,8 @@ The TUI is not supported. The GUI composer API used here is only available in Op
 ## Install from source
 
 ```bash
-git clone https://github.com/rwjxrj/opencode-prompt-expand.git
-cd opencode-prompt-expand
+git clone https://github.com/rwjxrj/opencode-prompt-optimization.git
+cd opencode-prompt-optimization
 npm ci
 ```
 
@@ -84,7 +84,7 @@ Add the plugin to the **global** OpenCode config. Desktop reads GUI plugins only
   "shell": "powershell",
   "plugins": [
     {
-      "package": "/absolute/path/to/opencode-prompt-expand",
+      "package": "/absolute/path/to/opencode-prompt-optimization",
       "options": {
         "mode": "concise",
         "model": "auto",
@@ -99,14 +99,14 @@ Add the plugin to the **global** OpenCode config. Desktop reads GUI plugins only
 On Windows, use forward slashes or escaped backslashes in the path, for example:
 
 ```jsonc
-"package": "D:/path/to/opencode-prompt-expand"
+"package": "D:/path/to/opencode-prompt-optimization"
 ```
 
 Then reload the Desktop window or restart OpenCode Desktop. The GUI bundle is loaded at window start; reloading only the server is not enough after a first install.
 
 Confirm the install:
 
-- **Settings > Extensions > Plugins** shows `prompt-expand` as enabled.
+- **Settings > Extensions > Plugins** shows `prompt-optimization` as enabled.
 - The command palette has **Expand prompt**.
 - Every composer shows the expand icon button left of the send button; hover it for **Optimize prompt**.
 
@@ -134,19 +134,19 @@ Confirm the install:
 | Previous / next version | Command palette **Previous expanded version** / **Next expanded version** |
 | Toggle mode | Command palette **Toggle expansion mode** |
 | Session outline | Command palette **Toggle session outline**, or the side panel `+` menu |
-| Settings | Command palette **Prompt Expand settings** |
+| Settings | Command palette **Prompt Optimization settings** |
 
 There are **no default keyboard shortcuts**. Commands are registered in **Settings > Shortcuts**; assign your own:
 
 ```text
-prompt-expand.expand
-prompt-expand.regenerate
-prompt-expand.restore
-prompt-expand.previous
-prompt-expand.next
-prompt-expand.mode
-prompt-expand.outline
-prompt-expand.settings
+prompt-optimization.expand
+prompt-optimization.regenerate
+prompt-optimization.restore
+prompt-optimization.previous
+prompt-optimization.next
+prompt-optimization.mode
+prompt-optimization.outline
+prompt-optimization.settings
 ```
 
 ### Versions
@@ -228,7 +228,7 @@ Impact and limits:
 
 ## Session outline (experimental)
 
-Off by default. Turn it on in **Settings > Prompt Expand**, then run **Toggle session outline** or pick **Session outline** from the side panel's `+` menu.
+Off by default. Turn it on in **Settings > Prompt Optimization**, then run **Toggle session outline** or pick **Session outline** from the side panel's `+` menu.
 
 - Lists your own messages for the current session, numbered, with markdown markers stripped.
 - Clicking an entry scrolls the timeline to that message and highlights the entry that follows the reading position.
@@ -239,7 +239,7 @@ It also depends on host internals: the timeline exposes `data-message-id` rows a
 
 ## Settings
 
-Open **Settings > Prompt Expand**, or run **Prompt Expand settings** from the command palette (command `prompt-expand.settings`).
+Open **Settings > Prompt Optimization**, or run **Prompt Optimization settings** from the command palette (command `prompt-optimization.settings`).
 
 | Setting | Description |
 |---|---|

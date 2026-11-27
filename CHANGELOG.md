@@ -2,11 +2,12 @@
 
 ## Unreleased
 
+- Rename the package and repository to `opencode-prompt-optimization` (plugin id `prompt-optimization`); command ids are now `prompt-optimization.*` and the settings page id changed accordingly.
 - Move the expand entry point to the composer toolbar: an icon button left of the send button, with the **Optimize prompt** / 「提示词优化」 tooltip.
 - Remove the composer pill and the bottom fallback button; the toolbar button is mounted with a best-effort DOM injection that re-places itself after host re-renders.
 - Expand prompts that contain `@` references or a leading `/command`: references are masked as placeholders, left untouched by the model, and restored verbatim.
 - Remove the `skipOnMentions` option and the "contains @ references, skipped" toast.
-- Show a loading effect on the toolbar icon while an expansion is running: a rotating gradient ring around the sparkle plus a breathing star, driven by SVG SMIL with a repeat-click guard; when the animation is turned off in Settings > Prompt Expand, a static ring and button tint still show the busy state.
+- Show a loading effect on the toolbar icon while an expansion is running: a rotating gradient ring around the sparkle plus a breathing star, driven by SVG SMIL with a repeat-click guard; when the animation is turned off in Settings > Prompt Optimization, a static ring and button tint still show the busy state.
 - Track three toolbar states (`idle` / `loading` / `success`): the button is disabled while loading, then shows a green check with an elastic pop for 1.5 s after a successful expansion; failures return straight to idle.
 - Make the composer itself show the state: a rotating conic-gradient "star river" border and a purple-blue glow while loading (painted on the host's `form[data-component="composer"]` through `::before` and `@property --pe-angle`), then a one-shot green glow when the text was replaced.
 - `expand()` / `regenerate()` now resolve to `"done" | "skipped" | "failed"` (`ExpandOutcome`) instead of `void`, so the toolbar can react; command-palette callers ignore the value and behave as before.
@@ -23,7 +24,7 @@
 
 - Add an experimental **session outline** panel: user messages on the right, click to scroll, active entry highlight, load-earlier and jump-to-latest controls.
 - Add the `outline` option and a settings toggle; it is off by default.
-- Add the `prompt-expand.outline` command and a side panel `+` menu entry.
+- Add the `prompt-optimization.outline` command and a side panel `+` menu entry.
 - Enabling the outline opens its tab immediately; the `+` menu entry and command work before the host stores the tab id, and closing the tab keeps it closed.
 - Message lookup uses the timeline's `data-message-id` rows and `message-<id>` anchors; a miss shows a toast instead of guessing.
 - Unrendered messages are located by bisecting the virtualised timeline's scroll offset, loading a page when the search reaches the oldest loaded message.

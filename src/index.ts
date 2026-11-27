@@ -4,7 +4,7 @@ import { buildPrompt } from "./prompts.js"
 import { cleanOutput, shouldSkip, validateOutput } from "./optimizer.js"
 import { pickModel, modelTags } from "./model.js"
 import { readProjectContext, resolveProjectDirectory } from "./project-context.js"
-import { PromptExpand } from "./rpc.js"
+import { PromptOptimization } from "./rpc.js"
 import type {
   CatalogModel,
   CatalogResult,
@@ -147,9 +147,9 @@ async function readCatalog(ctx: any): Promise<CatalogResult> {
 }
 
 export default Plugin.define({
-  id: "prompt-expand",
+  id: "prompt-optimization",
   async setup(ctx) {
-    const registration = await ctx.rpc.register(PromptExpand, {
+    const registration = await ctx.rpc.register(PromptOptimization, {
       optimize: async (raw, rpcContext): Promise<OptimizeResult> => {
         const input = raw as OptimizeInput
         const config = resolveConfig(ctx.options, {
@@ -267,7 +267,7 @@ export default Plugin.define({
             return { ok: false, code: "timeout", message: "Expansion timed out." }
           }
           const message = error instanceof Error ? error.message : String(error)
-          console.error("[prompt-expand] generate failed:", message)
+          console.error("[prompt-optimization] generate failed:", message)
           return { ok: false, code: "failed", message: `Expansion failed: ${message}` }
         }
       },

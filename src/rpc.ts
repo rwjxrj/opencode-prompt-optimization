@@ -12,8 +12,8 @@ const composerModelSchema = {
   additionalProperties: false,
 } as const
 
-export const PromptExpand = Rpc.define({
-  id: "prompt-expand",
+export const PromptOptimization = Rpc.define({
+  id: "prompt-optimization",
   events: {},
   methods: {
     optimize: {
@@ -93,4 +93,4 @@ export const PromptExpand = Rpc.define({
   },
 })
 
-export type PromptExpandInput = OptimizeInput
+export type PromptOptimizationInput = OptimizeInput

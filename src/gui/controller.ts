@@ -2,7 +2,7 @@ import type { SetupContext } from "@opencode/plugin/gui"
 import { createStore } from "solid-js/store"
 import { resolveConfig } from "../config.js"
 import { countChars, maskReferences, restoreReferences, shouldSkip } from "../optimizer.js"
-import { PromptExpand } from "../rpc.js"
+import { PromptOptimization } from "../rpc.js"
 import type { OptimizeResult } from "../types.js"
 import type { definition } from "./definition.js"
 import { DRAFT_KEY, type DraftComposer, type TargetComposer } from "./draft.js"
@@ -180,7 +180,7 @@ export function createController(ctx: Ctx, draft: DraftComposer): Controller {
 
     setBusy(current.key, true)
     try {
-      const result = (await ctx.client.rpc(PromptExpand).optimize({
+      const result = (await ctx.client.rpc(PromptOptimization).optimize({
         text: masked.text,
         mode: config.mode,
         round,
@@ -195,7 +195,7 @@ export function createController(ctx: Ctx, draft: DraftComposer): Controller {
 
       if (!result.ok) {
         const detail = failureDetail(result)
-        console.error("[prompt-expand] optimize failed:", detail)
+        console.error("[prompt-optimization] optimize failed:", detail)
         if (result.code === "no_model") {
           error("toast.noModel", "toast.noModelDesc", detail)
         } else {
@@ -206,7 +206,7 @@ export function createController(ctx: Ctx, draft: DraftComposer): Controller {
 
       const restored = restoreReferences(result.text, masked.refs)
       if (restored === undefined) {
-        console.error("[prompt-expand] optimize failed: references changed by the model")
+        console.error("[prompt-optimization] optimize failed: references changed by the model")
         error("toast.failed", "toast.reference")
         return "failed"
       }
@@ -236,7 +236,7 @@ export function createController(ctx: Ctx, draft: DraftComposer): Controller {
       return "done"
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : String(cause)
-      console.error("[prompt-expand] expand failed:", message)
+      console.error("[prompt-optimization] expand failed:", message)
       error("toast.failed", "toast.failedDesc", message)
       return "failed"
     } finally {

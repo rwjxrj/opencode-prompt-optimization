@@ -4,7 +4,7 @@ import type { definition } from "./definition.js"
 
 type Ctx = SetupContext<typeof definition>
 
-const MARK = "data-prompt-expand"
+const MARK = "data-prompt-optimization"
 const FORM = 'form[data-component="composer"]'
 type PeState = "idle" | "loading" | "success"
 const STYLE = [
@@ -109,7 +109,7 @@ export function mountToolbarButton(ctx: Ctx, controller: Controller): () => void
   button.setAttribute(MARK, "")
   button.setAttribute("aria-label", ctx.t("toolbar.expand"))
   button.title = ctx.t("toolbar.expand")
-  button.innerHTML = icon(`prompt-expand-grad-${++sequence}`)
+  button.innerHTML = icon(`prompt-optimization-grad-${++sequence}`)
   const animations = () => Array.from(button.querySelectorAll<SVGAnimationElement>("animate, animateTransform"))
   const composer = () => button.closest<HTMLElement>(FORM)
   const apply = (state: PeState) => {

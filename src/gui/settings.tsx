@@ -1,7 +1,7 @@
 import { For, Show, createMemo, createSignal, onCleanup } from "solid-js"
 import { SettingsPage, usePlugin, type SetupContext } from "@opencode/plugin/gui"
 import type { CatalogModel, CatalogProvider, CatalogResult } from "../types.js"
-import { PromptExpand } from "../rpc.js"
+import { PromptOptimization } from "../rpc.js"
 import type { definition } from "./definition.js"
 import { contextLabel, findModelEntry, providerColor, variantsFor } from "./catalog.js"
 import { requestOutlineOpen } from "./outline.js"
@@ -71,7 +71,7 @@ function Settings() {
     if (providers() !== null || loading) return
     loading = true
     try {
-      const result = (await ctx.client.rpc(PromptExpand).catalog({})) as CatalogResult
+      const result = (await ctx.client.rpc(PromptOptimization).catalog({})) as CatalogResult
       const list = result?.providers ?? []
       setProviders(list)
       setActiveProvider((current) => (list.some((entry) => entry.id === current) ? current : (list[0]?.id ?? "")))
@@ -491,14 +491,14 @@ div.pe-row--inline{cursor:default}
 
 export function createSettingsPage(ctx: Ctx): SettingsPage {
   return {
-    id: "prompt-expand",
+    id: "prompt-optimization",
     get title() {
       return ctx.t("settings.title")
     },
     get entries() {
       return [
         {
-          id: "prompt-expand",
+          id: "prompt-optimization",
           title: ctx.t("settings.title"),
           description: ctx.t("settings.description"),
         },

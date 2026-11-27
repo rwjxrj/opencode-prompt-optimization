@@ -1,16 +1,16 @@
 <div align="center">
 
-# opencode-prompt-expand
+# opencode-prompt-optimization
 
 **在 OpenCode Desktop 的 composer 里，把粗糙草稿原地扩展为结构化提示词。**
 
-[![CI](https://github.com/rwjxrj/opencode-prompt-expand/actions/workflows/ci.yml/badge.svg)](https://github.com/rwjxrj/opencode-prompt-expand/actions/runs)
+[![CI](https://github.com/rwjxrj/opencode-prompt-optimization/actions/workflows/ci.yml/badge.svg)](https://github.com/rwjxrj/opencode-prompt-optimization/actions/runs)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
 ![OpenCode Desktop](https://img.shields.io/badge/OpenCode_Desktop-2.2.5-8b5cf6)
 
 [English](../README.md) · [简体中文](README.zh-CN.md)
 
-![opencode-prompt-expand](../assets/featured.png)
+![opencode-prompt-optimization](../assets/featured.png)
 
 </div>
 
@@ -34,7 +34,7 @@
 
 按钮在发送按钮左侧；上图的草稿就是下面「输出示例」里的那一句。
 
-![提示词扩展设置页](../assets/screenshots/settings-zh.png)
+![提示词优化设置页](../assets/screenshots/settings-zh.png)
 
 模型选择器可搜索供应商/模型，也可直接输入 `provider/model`：
 
@@ -63,8 +63,8 @@
 ### 从源码构建
 
 ```bash
-git clone https://github.com/rwjxrj/opencode-prompt-expand.git
-cd opencode-prompt-expand
+git clone https://github.com/rwjxrj/opencode-prompt-optimization.git
+cd opencode-prompt-optimization
 npm ci
 ```
 
@@ -80,7 +80,7 @@ npm ci
   "shell": "powershell",
   "plugins": [
     {
-      "package": "/absolute/path/to/opencode-prompt-expand",
+      "package": "/absolute/path/to/opencode-prompt-optimization",
       "options": {
         "mode": "concise",
         "model": "auto",
@@ -95,11 +95,11 @@ npm ci
 Windows 路径示例：
 
 ```jsonc
-"package": "D:/path/to/opencode-prompt-expand"
+"package": "D:/path/to/opencode-prompt-optimization"
 ```
 
 重载 Desktop 窗口，或重启 OpenCode Desktop。  
-检查 **Settings > Extensions > Plugins** 中是否出现 `prompt-expand`。
+检查 **Settings > Extensions > Plugins** 中是否出现 `prompt-optimization`。
 
 ## 使用
 
@@ -122,19 +122,19 @@ Windows 路径示例：
 | 版本切换 | 命令面板 **Previous expanded version** / **Next expanded version** |
 | 切换模式 | 命令面板 **Toggle expansion mode** |
 | 会话目录 | 命令面板 **Toggle session outline**，或侧栏 `+` 菜单 |
-| 设置 | 命令面板 **Prompt Expand settings** |
+| 设置 | 命令面板 **Prompt Optimization settings** |
 
 没有默认快捷键。可在 **Settings > Shortcuts** 绑定：
 
 ```text
-prompt-expand.expand
-prompt-expand.regenerate
-prompt-expand.restore
-prompt-expand.previous
-prompt-expand.next
-prompt-expand.mode
-prompt-expand.outline
-prompt-expand.settings
+prompt-optimization.expand
+prompt-optimization.regenerate
+prompt-optimization.restore
+prompt-optimization.previous
+prompt-optimization.next
+prompt-optimization.mode
+prompt-optimization.outline
+prompt-optimization.settings
 ```
 
 ## 输出示例
@@ -186,7 +186,7 @@ prompt-expand.settings
 
 ## 会话目录（实验）
 
-默认关闭。先在 **Settings > Prompt Expand** 中启用，然后运行 **切换会话目录**，或在右侧面板的 `+` 菜单里选择 **会话目录**。
+默认关闭。先在 **Settings > Prompt Optimization** 中启用，然后运行 **切换会话目录**，或在右侧面板的 `+` 菜单里选择 **会话目录**。
 
 - 按顺序列出当前会话里你发的消息，去掉 markdown 标记并编号
 - 点击条目滚动到对应消息；阅读位置所在条目会高亮
@@ -197,7 +197,7 @@ prompt-expand.settings
 
 ## 设置
 
-打开 **Settings > Prompt Expand**，或运行 **Prompt Expand settings**。
+打开 **Settings > Prompt Optimization**，或运行 **Prompt Optimization settings**。
 
 | 设置 | 说明 |
 |---|---|

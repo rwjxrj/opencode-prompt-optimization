@@ -70,7 +70,7 @@ describe("resolveProjectDirectory", () => {
 
 describe("readProjectContext", () => {
   it("reads package.json and rule files from a directory", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "prompt-expand-"))
+    const directory = await mkdtemp(join(tmpdir(), "prompt-optimization-"))
     try {
       await writeFile(
         join(directory, "package.json"),

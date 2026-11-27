@@ -129,7 +129,7 @@ async function tick() {
 
 async function main() {
   if (commands.length !== 9) throw new Error(`expected 9 commands, got ${commands.length}`)
-  if (!settings || settings.id !== "prompt-expand") throw new Error("missing settings page")
+  if (!settings || settings.id !== "prompt-optimization") throw new Error("missing settings page")
   if (!panel || panel.id !== "outline" || panel.region !== "side") {
     throw new Error("missing session outline panel")
   }

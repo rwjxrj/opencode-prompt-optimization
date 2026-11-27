@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a problem with opencode-prompt-expand
+description: Report a problem with opencode-prompt-optimization
 title: "[Bug]: "
 labels: ["bug"]
 body:

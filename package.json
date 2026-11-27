@@ -1,10 +1,11 @@
 {
-  "name": "opencode-prompt-expand",
+  "name": "opencode-prompt-optimization",
   "version": "0.2.0",
-  "description": "Expand rough prompts into structured prompts inside the OpenCode Desktop composer.",
+  "description": "Optimize and expand rough prompts into structured, model-ready prompts inside the OpenCode Desktop composer.",
   "type": "module",
   "license": "MIT",
-  "author": "opencode-prompt-expand contributors",
+  "author": "opencode-prompt-optimization contributors",
+  "repository": "github:rwjxrj/opencode-prompt-optimization",
   "keywords": [
     "opencode",
     "opencode-plugin",

@@ -1,6 +1,6 @@
 import type { ComposerModel } from "../types.js"
 
-export const DRAFT_KEY = "__prompt_expand_draft__"
+export const DRAFT_KEY = "__prompt_optimization_draft__"
 
 export type TargetComposer = {
   text(): string

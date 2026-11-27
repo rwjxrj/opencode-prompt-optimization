@@ -87,7 +87,7 @@ export function registerCommands(ctx: Ctx, controller: Controller, outline: Outl
     },
     keywords: "prompt expand settings options",
     section: "prompt",
-    run: () => ctx.layout.settings("prompt-expand"),
+    run: () => ctx.layout.settings("prompt-optimization"),
   }))
 
   ctx.add(Command, (): Command => ({
