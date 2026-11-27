@@ -180,7 +180,7 @@ Reload the Desktop window or restart OpenCode Desktop. The GUI bundle is loaded 
 
 ### References and commands
 
-`@file` mentions, attached references and a leading `/command` are masked as `[[ref1]]`, `[[ref2]]` before the model call and restored verbatim afterwards, so only your prose is rewritten. If the model drops, duplicates, or renames a placeholder, nothing is written and the toast says so.
+`@file` mentions, attached references and a leading `/command` are masked as `[[ref1]]`, `[[ref2]]` before the model call and restored verbatim afterwards, so only your prose is rewritten. Mentions stay real chips after expansion, undo and version switches, wherever they sit in the sentence. A placeholder may be reused when the rewrite refers to the same file again, but every reference must survive and no new one may appear; otherwise nothing is written and the toast says so.
 
 ### Entry points
 
@@ -282,7 +282,7 @@ Impact and limits:
 
 - Neither part is an official OpenCode API and both may break if the Desktop composer DOM changes.
 - It may fail on a complex rich-text composer or if the editor changes during the model call.
-- `@` mentions are text in drafts: the draft adapter writes plain text, so a mention chip becomes `@path` text.
+- Mentions survive expansion there too when the editor uses the host composer; a plain `<textarea>`/`<input>` fallback writes `@path` text instead.
 - The draft has no composer model, so the model comes from the server default or your configured model.
 - Disable the draft adapter with `draftFallback: false` if you only want to expand in mounted sessions.
 
@@ -410,7 +410,7 @@ The repository includes a GitHub Actions workflow that runs `npm ci`, `npm run v
 
 - The Desktop GUI plugin API is experimental. Pin `@opencode/plugin` to the OpenCode version you run.
 - The composer toolbar button and the Home/draft fallback are best-effort DOM code, not official APIs.
-- `composer.setText()` replaces text and keeps attachments, but it cannot rebuild `@` mention chips; references are kept as verbatim `@path` text.
+- `composer.setText()` replaces text and keeps attachments, but it flattens `@` mention chips into text. The plugin therefore writes the `[data-component="composer-editor"]` DOM directly to keep the mention spans; if that editor is not found it falls back to `setText` and references become plain `@path` text.
 - The Thinking selector appears only after an explicit model is picked: the settings page cannot read the composer's model on the settings route, so `auto` / `composer` / empty always mean "follow the composer".
 - There is no TUI implementation.
 - The session outline depends on undocumented timeline attributes (`data-message-id`, `message-<id>`). Unrendered messages are located by briefly scrolling the virtualised timeline; if the message is older than the loaded history, load earlier pages first.
@@ -440,7 +440,7 @@ The Desktop GUI API has no slot inside the composer toolbar. The plugin finds th
 
 ### Does it support `@` file mentions?
 
-Yes. References are masked before the model call and restored verbatim, so only the prose around them changes. Plain email addresses are not treated as mentions.
+Yes. Mentions are masked before the model call and restored as real chips afterwards, wherever they sit in the sentence, including after undo and version switches. Plain email addresses are not treated as mentions.
 
 ### Does it store my prompts?
 

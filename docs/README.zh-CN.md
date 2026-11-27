@@ -179,7 +179,7 @@ Windows 路径示例：
 3. 等待模型返回期间工具栏图标会显示旋转的渐变光环，结果会写回 composer
 4. 自己检查/修改，然后按 Enter 发送
 
-**引用与命令**：`@文件` 引用、附件引用和开头的 `/命令` 在调用模型前会替换成 `[[ref1]]`、`[[ref2]]` 占位符，返回后原样还原，只改写你的正文。如果模型丢失、重复或改写占位符，结果不会写回，并会弹出提示。
+**引用与命令**：`@文件` 引用、附件引用和开头的 `/命令` 在调用模型前会替换成 `[[ref1]]`、`[[ref2]]` 占位符，返回后原样还原，只改写你的正文。引用在句首、句中、句尾都一样处理，优化、撤销、切换版本后仍是可点击的 mention 芯片。同一条引用可以在改写结果里重复出现（指代同一个文件时），但每个引用必须至少保留一次、且不得出现新的编号，否则结果不会写回，并会弹出提示。
 
 入口：
 
@@ -334,7 +334,7 @@ prompt-optimization.settings
 Desktop GUI API 没有 composer 工具栏插槽。插件在 composer DOM 里按 `[data-slot=composer-actions]` 内的 `[data-action=composer-submit]` 找到发送按钮，把图标按钮插到它左边，宿主重渲染后会重新挂载；宿主结构变化时按钮会暂时不显示。Home / draft 没有官方 composer API，读写草稿仍走 DOM 适配器，属于 best-effort。
 
 **支持 `@` 文件引用吗？**  
-支持。引用在调用模型前会被替换成占位符，返回后原样还原，只改写引用之外的正文。普通邮箱地址不会被误判。
+支持。引用在调用模型前会被替换成占位符，返回后还原成真正的 mention 芯片（句首、句中、句尾都可以），只改写引用之外的正文。普通邮箱地址不会被误判。
 
 **失败会改输入框吗？**  
 不会。失败时原文不变，toast 会尽量显示服务端 code/message。
@@ -354,7 +354,7 @@ Desktop GUI API 没有 composer 工具栏插槽。插件在 composer DOM 里按 
 
 - GUI 插件 API 仍是 experimental
 - Home / draft 的 DOM 回退不是官方 API
-- `setText()` 不能重建 `@` mention chip，引用会以 `@path` 纯文本保留
+- `setText()` 会把 `@` mention chip 压平成纯文本；因此插件直接改写 `[data-component="composer-editor"]` 以保留 mention 节点（每个 mention 芯片在优化、撤销和版本切换后都保留），找不到该编辑器时才回退 `setText`
 - 思考强度选择器只在选定显式模型后出现：设置页在 settings 路由读不到 composer 的模型，因此 `auto` / `composer` / 留空一律表示「跟随 composer」
 - 没有 TUI 实现
 - 会话目录依赖未公开的 `data-message-id` / `message-<id>`；未渲染的消息会通过短暂滚动时间线来定位，比已加载历史更早的消息需要先「加载更早」

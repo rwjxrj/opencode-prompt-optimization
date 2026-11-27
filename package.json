@@ -1,6 +1,6 @@
 {
   "name": "opencode-prompt-optimization",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Optimize and expand rough prompts into structured, model-ready prompts inside the OpenCode Desktop composer.",
   "type": "module",
   "license": "MIT",

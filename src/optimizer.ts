@@ -23,7 +23,7 @@ const CONFIRMATION = /^(继续|好的|收到|谢谢|可以|ok|okay|yes|no|go|con
 const REF = String.raw`[^\s，。；：！？、（）【】「」《》“”‘’,;!?]+`
 const COMMAND = new RegExp(`^(\\s*)(/${REF})`)
 const MENTION = new RegExp(`(^|\\s)(@${REF})`, "g")
-const PLACEHOLDER = /\[\[ref\d+\]\]/g
+const PLACEHOLDER = /\[\[ref(\d+)\]\]/g
 
 export type References = {
   text: string
@@ -40,15 +40,63 @@ export function maskReferences(text: string): References {
   return { text: text.replace(COMMAND, mask).replace(MENTION, mask), refs }
 }
 
-/** Puts the references back; undefined when the model dropped, duplicated or invented a placeholder. */
-export function restoreReferences(text: string, refs: string[]): string | undefined {
-  let restored = text
-  for (let index = 0; index < refs.length; index += 1) {
-    const placeholder = `[[ref${index + 1}]]`
-    if (!restored.includes(placeholder)) return undefined
-    restored = restored.replace(placeholder, refs[index]!)
+export type DraftSegment = { text: string } | { ref: number }
+
+/** A draft as alternating text and reference segments, so a rewrite keeps every mention. */
+export type DraftDoc = {
+  segments: DraftSegment[]
+  refs: string[]
+}
+
+/**
+ * Splits text at `[[refN]]` tokens. A reference may be reused (the prompt tells the model to),
+ * but every reference must appear at least once; an unknown number fails.
+ */
+export function parseReferences(text: string, refs: string[]): DraftSegment[] | undefined {
+  const segments: DraftSegment[] = []
+  const seen = new Set<number>()
+  let cursor = 0
+  for (const match of text.matchAll(PLACEHOLDER)) {
+    const index = Number(match[1]) - 1
+    if (index < 0 || index >= refs.length) return undefined
+    const at = match.index
+    if (at > cursor) segments.push({ text: text.slice(cursor, at) })
+    segments.push({ ref: index })
+    seen.add(index)
+    cursor = at + match[0].length
   }
-  return restored.match(PLACEHOLDER) ? undefined : restored
+  if (seen.size !== refs.length) return undefined
+  if (cursor < text.length) segments.push({ text: text.slice(cursor) })
+  return segments.length > 0 ? segments : [{ text: "" }]
+}
+
+export function documentText(doc: DraftDoc): string {
+  return doc.segments
+    .map((segment) => ("text" in segment ? segment.text : doc.refs[segment.ref] ?? ""))
+    .join("")
+}
+
+/** Replaces every reference with a placeholder, so the model can only move it, never rewrite it. */
+export function maskDocument(doc: DraftDoc): string {
+  return doc.segments
+    .map((segment) => ("text" in segment ? segment.text : `[[ref${segment.ref + 1}]]`))
+    .join("")
+}
+
+/** A draft read from plain text: `@path` and a leading `/command` become references again. */
+export function documentFromText(text: string): DraftDoc {
+  const masked = maskReferences(text)
+  const segments = parseReferences(masked.text, masked.refs)
+  // A draft that already contains `[[refN]]` cannot be masked safely; leave it as plain text.
+  if (!segments) return { segments: [{ text }], refs: [] }
+  return { segments, refs: masked.refs }
+}
+
+/** The model's rewrite as a document; undefined when it dropped or invented a placeholder. */
+export function documentFromModel(text: string, source: DraftDoc): DraftDoc | undefined {
+  const segments = parseReferences(text, source.refs)
+  if (!segments) return undefined
+  return { segments, refs: source.refs }
 }
 
 export function countStructureMarkers(text: string): number {

@@ -31,6 +31,19 @@ function isVisible(element: HTMLElement): boolean {
   return style.visibility !== "hidden" && style.display !== "none"
 }
 
+/** The bottom-most visible editable element matching `selector`, shared with the composer editor adapter. */
+export function bottomMostEditor(selector: string): HTMLElement | null {
+  if (typeof document === "undefined") return null
+
+  const candidates = Array.from(document.querySelectorAll<HTMLElement>(selector))
+    .filter((element) => isEditable(element) && isVisible(element))
+    .map((element) => ({ element, rect: element.getBoundingClientRect() }))
+    .filter(({ rect }) => rect.bottom > window.innerHeight * 0.35)
+    .sort((left, right) => right.rect.bottom - left.rect.bottom)
+
+  return candidates[0]?.element ?? null
+}
+
 /**
  * The official composer API is undefined on Home and on a draft session.
  * The draft composer is still a DOM editor, so this adapter finds the
@@ -38,17 +51,7 @@ function isVisible(element: HTMLElement): boolean {
  * used when `ctx.screen.current()` is undefined.
  */
 function findEditor(): HTMLElement | null {
-  if (typeof document === "undefined") return null
-
-  const candidates = Array.from(
-    document.querySelectorAll<HTMLElement>('textarea, input, [contenteditable="true"]'),
-  )
-    .filter((element) => isEditable(element) && isVisible(element))
-    .map((element) => ({ element, rect: element.getBoundingClientRect() }))
-    .filter(({ rect }) => rect.bottom > window.innerHeight * 0.35)
-    .sort((left, right) => right.rect.bottom - left.rect.bottom)
-
-  return candidates[0]?.element ?? null
+  return bottomMostEditor('textarea, input, [contenteditable="true"]')
 }
 
 function read(element: HTMLElement | null): string {

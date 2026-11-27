@@ -3,8 +3,12 @@ import { resolveConfig } from "../src/config.js"
 import {
   cleanOutput,
   countStructureMarkers,
+  documentFromModel,
+  documentFromText,
+  documentText,
+  maskDocument,
   maskReferences,
-  restoreReferences,
+  parseReferences,
   shouldSkip,
   validateOutput,
 } from "../src/optimizer.js"
@@ -65,25 +69,49 @@ describe("shouldSkip", () => {
 
   it("masks references and restores them verbatim", () => {
     const original = "/comet-build 请按 @src/app.ts 补登录，参考 docs/README.zh-CN.md"
-    const masked = maskReferences(original)
-    expect(masked.text).toBe("[[ref1]] 请按 [[ref2]] 补登录，参考 docs/README.zh-CN.md")
-    expect(masked.refs).toEqual(["/comet-build", "@src/app.ts"])
-    expect(restoreReferences("[[ref1]] 请按 [[ref2]] 补逻辑", masked.refs)).toBe(
-      "/comet-build 请按 @src/app.ts 补逻辑",
-    )
-    expect(restoreReferences(masked.text, masked.refs)).toBe(original)
+    const doc = documentFromText(original)
+    expect(maskDocument(doc)).toBe("[[ref1]] 请按 [[ref2]] 补登录，参考 docs/README.zh-CN.md")
+    expect(doc.refs).toEqual(["/comet-build", "@src/app.ts"])
+    expect(documentText(doc)).toBe(original)
   })
 
   it("leaves email addresses alone", () => {
     expect(maskReferences("发到 a@b.com 就行").refs).toEqual([])
+    expect(documentFromText("发到 a@b.com 就行").refs).toEqual([])
   })
 
   it("rejects output that drops or invents a reference", () => {
-    const masked = maskReferences("看下 @src/a.ts")
-    expect(masked.text).toBe("看下 [[ref1]]")
-    expect(restoreReferences("看下代码", masked.refs)).toBeUndefined()
-    expect(restoreReferences("看下 [[ref1]] 和 [[ref2]]", masked.refs)).toBeUndefined()
-    expect(restoreReferences("看下 [[ref1]] 的代码", masked.refs)).toBe("看下 @src/a.ts 的代码")
+    const doc = documentFromText("看下 @src/a.ts")
+    expect(maskDocument(doc)).toBe("看下 [[ref1]]")
+    expect(documentFromModel("看下代码", doc)).toBeUndefined()
+    expect(documentFromModel("看下 [[ref1]] 和 [[ref2]]", doc)).toBeUndefined()
+    expect(documentText(documentFromModel("看下 [[ref1]] 的代码", doc)!)).toBe("看下 @src/a.ts 的代码")
+  })
+
+  it("keeps a mention that sits in the middle of a sentence", () => {
+    // The host inserts a mention without a space before it, so plain-text masking misses it;
+    // the editor adapter reads it structurally instead.
+    const doc = { segments: [{ text: "把 AAA" }, { ref: 0 }, { text: " 的解释写进注释" }], refs: ["@src/a.ts"] }
+    expect(maskDocument(doc)).toBe("把 AAA[[ref1]] 的解释写进注释")
+    const rewritten = documentFromModel("目标：把 AAA[[ref1]] 的解释写进注释", doc)
+    expect(rewritten).toBeDefined()
+    expect(maskDocument(rewritten!)).toBe("目标：把 AAA[[ref1]] 的解释写进注释")
+    expect(documentText(rewritten!)).toBe("目标：把 AAA@src/a.ts 的解释写进注释")
+    expect(rewritten!.refs).toEqual(["@src/a.ts"])
+  })
+
+  it("reuses a reference the model mentions twice", () => {
+    const doc = documentFromText("看下 @src/a.ts")
+    const rewritten = documentFromModel("范围：[[ref1]]。上下文：[[ref1]] 是入口", doc)
+    expect(rewritten!.segments.filter((segment) => "ref" in segment)).toHaveLength(2)
+    expect(documentText(rewritten!)).toBe("范围：@src/a.ts。上下文：@src/a.ts 是入口")
+  })
+
+  it("rejects a placeholder that is invented or left unused", () => {
+    expect(parseReferences("a[[ref1]]b", ["@a"])).toEqual([{ text: "a" }, { ref: 0 }, { text: "b" }])
+    expect(parseReferences("a[[ref1]]b", [])).toBeUndefined()
+    expect(parseReferences("[[ref1]][[ref2]]", ["@a"])).toBeUndefined()
+    expect(parseReferences("plain", [])).toEqual([{ text: "plain" }])
   })
 
   it("allows a normal prompt through", () => {

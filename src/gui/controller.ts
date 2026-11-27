@@ -1,9 +1,11 @@
 import type { SetupContext } from "@opencode/plugin/gui"
 import { createStore } from "solid-js/store"
 import { resolveConfig } from "../config.js"
-import { countChars, maskReferences, restoreReferences, shouldSkip } from "../optimizer.js"
+import { countChars, documentFromModel, documentFromText, documentText, maskDocument, shouldSkip } from "../optimizer.js"
+import type { DraftDoc } from "../optimizer.js"
 import { PromptOptimization } from "../rpc.js"
 import type { OptimizeResult } from "../types.js"
+import { adoptElements, readEditorDoc, writeDocument } from "./composer-dom.js"
 import type { definition } from "./definition.js"
 import { DRAFT_KEY, type DraftComposer, type TargetComposer } from "./draft.js"
 import { failureDetail } from "./failure.js"
@@ -123,18 +125,22 @@ export function createController(ctx: Ctx, draft: DraftComposer): Controller {
     if (reason === "too_short") info("toast.tooShort")
   }
 
-  function undo(sessionID: string, written: string, original: string) {
+  function write(current: Target, doc: DraftDoc) {
+    if (!writeDocument(doc)) current.composer.setText(documentText(doc))
+    current.composer.focus()
+  }
+
+  function undo(sessionID: string, written: DraftDoc, original: DraftDoc) {
     const current = target(sessionID)
     if (!current || current.key !== sessionID) return
 
-    if (current.composer.text() !== written) {
+    if (current.composer.text() !== documentText(written)) {
       info("toast.edited")
       return
     }
 
     try {
-      current.composer.setText(original)
-      current.composer.focus()
+      write(current, original)
       store.clear(sessionID)
       ctx.toast.show({ title: ctx.t("toast.restored"), variant: "success" })
     } catch {
@@ -150,27 +156,29 @@ export function createController(ctx: Ctx, draft: DraftComposer): Controller {
     const config = currentConfig()
     const variant = ctx.stores.prefs.value.variant?.trim()
     const hasInput = typeof input === "string" && input.trim().length > 0
-    const text = hasInput ? input!.trim() : current.composer.text()
+    const doc = hasInput
+      ? documentFromText(input!.trim())
+      : readEditorDoc() ?? documentFromText(current.composer.text())
 
-    if (!text.trim()) return "skipped"
+    if (!documentText(doc).trim()) return "skipped"
 
-    const masked = maskReferences(text)
-    const decision = shouldSkip(text, config)
+    const decision = shouldSkip(documentText(doc), config)
     if (decision.skip) {
       notifySkip(decision.reason, decision.notify)
       return "skipped"
     }
 
-    const run = hasInput
-      ? store.start(current.key, text)
-      : store.sync(current.key, current.composer.text())
+    const run = hasInput ? store.start(current.key, doc) : store.sync(current.key, doc)
 
     let round = 1
     let previous: string | undefined
 
-    if (!hasInput && run.versions.length > 0 && current.composer.text() === run.versions[run.index]) {
-      round = run.versions.length + 1
-      previous = run.versions[run.index]
+    if (!hasInput && run.versions.length > 0) {
+      const version = run.versions[run.index]
+      if (version && current.composer.text() === documentText(version)) {
+        round = run.versions.length + 1
+        previous = documentText(version)
+      }
     }
 
     if (round > config.maxRounds) {
@@ -181,7 +189,7 @@ export function createController(ctx: Ctx, draft: DraftComposer): Controller {
     setBusy(current.key, true)
     try {
       const result = (await ctx.client.rpc(PromptOptimization).optimize({
-        text: masked.text,
+        text: maskDocument(doc),
         mode: config.mode,
         round,
         ...(previous ? { previous } : {}),
@@ -204,19 +212,22 @@ export function createController(ctx: Ctx, draft: DraftComposer): Controller {
         return "failed"
       }
 
-      const restored = restoreReferences(result.text, masked.refs)
-      if (restored === undefined) {
-        console.error("[prompt-optimization] optimize failed: references changed by the model")
+      const expanded = documentFromModel(result.text, doc)
+      if (!expanded) {
+        console.error(
+          "[prompt-optimization] optimize failed: references changed by the model",
+          { refs: doc.refs, output: result.text.slice(0, 500) },
+        )
         error("toast.failed", "toast.reference")
         return "failed"
       }
 
-      current.composer.setText(restored)
-      current.composer.focus()
-      store.push(current.key, run.original, restored)
+      adoptElements(doc, expanded)
+      write(current, expanded)
+      store.push(current.key, run.original, expanded)
 
-      const before = countChars(run.original)
-      const after = countChars(restored)
+      const before = countChars(documentText(run.original))
+      const after = countChars(documentText(expanded))
       ctx.toast.show({
         title: ctx.t("toast.expanded"),
         description: `${before} → ${after} ${ctx.t("toast.chars")}`,
@@ -225,7 +236,7 @@ export function createController(ctx: Ctx, draft: DraftComposer): Controller {
         actions: [
           {
             label: ctx.t("action.undo"),
-            run: () => undo(current.key, restored, run.original),
+            run: () => undo(current.key, expanded, run.original),
           },
           {
             label: ctx.t("action.regenerate"),
@@ -258,14 +269,14 @@ export function createController(ctx: Ctx, draft: DraftComposer): Controller {
       return
     }
 
-    if (current.composer.text() !== run.versions[run.index]) {
+    const version = run.versions[run.index]
+    if (!version || current.composer.text() !== documentText(version)) {
       info("toast.edited")
       return
     }
 
     try {
-      current.composer.setText(run.original)
-      current.composer.focus()
+      write(current, run.original)
       store.clear(current.key)
       ctx.toast.show({ title: ctx.t("toast.restored"), variant: "success" })
     } catch {
@@ -277,7 +288,7 @@ export function createController(ctx: Ctx, draft: DraftComposer): Controller {
     const current = target(sessionID)
     if (!current) return
 
-    const run = store.sync(current.key, current.composer.text())
+    const run = store.sync(current.key, documentFromText(current.composer.text()))
     if (run.versions.length === 0) {
       info("toast.noVersions")
       return
@@ -289,10 +300,9 @@ export function createController(ctx: Ctx, draft: DraftComposer): Controller {
       return
     }
 
-    const text = run.versions[next]
+    const version = run.versions[next]!
     try {
-      current.composer.setText(text)
-      current.composer.focus()
+      write(current, version)
       store.setIndex(current.key, next)
     } catch {
       error("toast.failed", "toast.failedDesc")

@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.3.1
+
+- Keep `@` mentions as real chips after expansion: drafts are now read from and written to the host composer editor as a document of text and reference segments, instead of `composer.setText()`, which flattened every mention. A mention in the middle of a sentence (the host inserts it without a leading space) is no longer missed, and undo / previous / next version keep the chips too.
+- Allow a rewrite to mention the same reference more than once (the prompt already tells the model to reuse the placeholder), so a six-section expansion that names the file twice is no longer rejected as "the model changed the references".
 
 ## 0.3.0
 

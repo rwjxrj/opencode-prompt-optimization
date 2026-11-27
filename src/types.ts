@@ -1,3 +1,5 @@
+import type { DraftDoc } from "./optimizer.js"
+
 export type Mode = "concise" | "full"
 
 export type ModelRef = {
@@ -70,8 +72,8 @@ export type CatalogResult = {
 }
 
 export type Run = {
-  original: string
-  versions: string[]
+  original: DraftDoc
+  versions: DraftDoc[]
   index: number
 }
 

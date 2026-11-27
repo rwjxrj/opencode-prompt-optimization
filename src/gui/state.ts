@@ -1,4 +1,5 @@
 import type { Run } from "../types.js"
+import { documentText, type DraftDoc } from "../optimizer.js"
 
 export class RunStore {
   private readonly runs = new Map<string, Run>()
@@ -12,21 +13,22 @@ export class RunStore {
     return this.runs.get(sessionID)
   }
 
-  start(sessionID: string, original: string): Run {
+  start(sessionID: string, original: DraftDoc): Run {
     const run: Run = { original, versions: [], index: -1 }
     this.runs.set(sessionID, run)
     return run
   }
 
-  sync(sessionID: string, current: string): Run {
+  sync(sessionID: string, current: DraftDoc): Run {
     const run = this.runs.get(sessionID)
-    if (!run || current !== run.versions[run.index]) {
+    const version = run?.versions[run.index]
+    if (!run || !version || documentText(current) !== documentText(version)) {
       return this.start(sessionID, current)
     }
     return run
   }
 
-  push(sessionID: string, original: string, text: string): Run {
+  push(sessionID: string, original: DraftDoc, text: DraftDoc): Run {
     const run = this.runs.get(sessionID) ?? this.start(sessionID, original)
     run.original = run.versions.length === 0 ? original : run.original
 
