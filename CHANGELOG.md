@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Rename the package and repository to `opencode-prompt-optimization` (plugin id `prompt-optimization`); command ids are now `prompt-optimization.*` and the settings page id changed accordingly.
+- Document the npm and `opencode plugin add` installation methods in both READMEs.
 - Move the expand entry point to the composer toolbar: an icon button left of the send button, with the **Optimize prompt** / 「提示词优化」 tooltip.
 - Remove the composer pill and the bottom fallback button; the toolbar button is mounted with a best-effort DOM injection that re-places itself after host re-renders.
 - Expand prompts that contain `@` references or a leading `/command`: references are masked as placeholders, left untouched by the model, and restored verbatim.

@@ -16,7 +16,7 @@
 
 在 **OpenCode Desktop** 的 composer 里，把粗糙草稿扩展成结构化提示词，并原地写回。
 
-**状态：** 实验版，仅支持源码安装——本仓库的衍生版本未发布到 npm。包版本为 `0.2.0`，另有 [CHANGELOG.md](../CHANGELOG.md) 中 *Unreleased* 列的改动。OpenCode Desktop 的 GUI 插件 API 仍是 experimental，请锁定你测试的 OpenCode 版本。
+**状态：** 实验版，已发布到 npm：`opencode-prompt-optimization@0.2.0`，另有 [CHANGELOG.md](../CHANGELOG.md) 中 *Unreleased* 列的改动。OpenCode Desktop 的 GUI 插件 API 仍是 experimental，请锁定你测试的 OpenCode 版本。
 
 ## 适合谁
 
@@ -60,6 +60,67 @@
 
 ## 安装
 
+把插件加入**全局** OpenCode 配置；Desktop 只从全局配置加载 GUI 插件：
+
+- macOS / Linux：`~/.config/opencode/opencode.jsonc`
+- Windows：`C:\Users\<you>\.config\opencode\opencode.jsonc`
+
+### 从 npm 安装（推荐）
+
+```bash
+opencode plugin add opencode-prompt-optimization
+```
+
+要锁定版本，在后面追加版本号：`opencode plugin add opencode-prompt-optimization@0.2.0`。只写包名时停留在安装时的版本；`opencode plugin update` 会更新到最新版。
+
+也可以手动配置：
+
+```jsonc
+{
+  "shell": "powershell",
+  "plugins": [
+    {
+      "package": "opencode-prompt-optimization",
+      "options": {
+        "mode": "concise",
+        "model": "auto",
+        "projectContext": true,
+        "timeoutMs": 30000
+      }
+    }
+  ]
+}
+```
+
+不需要 options 时，直接写包名即可：
+
+```jsonc
+{
+  "plugins": ["opencode-prompt-optimization"]
+}
+```
+
+### 直接用 npm 安装
+
+`opencode plugin add` 内部会调用 npm。如果你想自己管理安装：
+
+```bash
+npm install opencode-prompt-optimization@0.2.0
+```
+
+然后用绝对路径把安装目录加入配置，因为 OpenCode 不会自动扫描 `node_modules`：
+
+```jsonc
+{
+  "plugins": [
+    {
+      "package": "/absolute/path/to/node_modules/opencode-prompt-optimization",
+      "options": { "mode": "concise" }
+    }
+  ]
+}
+```
+
 ### 从源码构建
 
 ```bash
@@ -70,10 +131,15 @@ npm ci
 
 `npm ci` 会通过 `prepare` 自动构建 `dist/`。
 
-把插件加入**全局** OpenCode 配置：
+构建产物：
 
-- macOS / Linux：`~/.config/opencode/opencode.jsonc`
-- Windows：`C:\Users\<you>\.config\opencode\opencode.jsonc`
+```text
+dist/index.js              服务端
+dist/rpc.js                RPC 契约
+dist/gui-experimental.cjs  Desktop GUI bundle
+```
+
+把全局配置指向源码目录：
 
 ```jsonc
 {
@@ -98,8 +164,13 @@ Windows 路径示例：
 "package": "D:/path/to/opencode-prompt-optimization"
 ```
 
-重载 Desktop 窗口，或重启 OpenCode Desktop。  
-检查 **Settings > Extensions > Plugins** 中是否出现 `prompt-optimization`。
+### 重载并确认
+
+重载 Desktop 窗口，或重启 OpenCode Desktop。GUI bundle 在窗口启动时加载，首次安装后只重载服务端不够。
+
+- **Settings > Extensions > Plugins** 中会出现 `prompt-optimization`
+- 命令面板有 **Expand prompt**
+- composer 发送按钮左侧有展开图标，悬停显示 **Optimize prompt**
 
 ## 使用
 

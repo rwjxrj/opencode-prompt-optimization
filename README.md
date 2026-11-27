@@ -16,7 +16,7 @@
 
 The plugin is a small OpenCode Desktop extension: it reads the current draft, asks your own connected model to expand it, writes the result back into the composer, and leaves the send action to you. It never sends a message, never writes session history, and never proxies model credentials.
 
-**Status:** experimental, source install only — this fork is not published to npm. The package version is `0.2.0`, plus the changes listed under *Unreleased* in [CHANGELOG.md](CHANGELOG.md). The OpenCode Desktop GUI plugin API is still marked experimental upstream; pin the OpenCode version you test against.
+**Status:** experimental, published to npm as `opencode-prompt-optimization@0.2.0`, plus the changes listed under *Unreleased* in [CHANGELOG.md](CHANGELOG.md). The OpenCode Desktop GUI plugin API is still marked experimental upstream; pin the OpenCode version you test against.
 
 **Who it is for:** OpenCode Desktop users who write natural-language prompts and want a more structured first draft without leaving the composer. It is not a TUI plugin and it does not send messages for you.
 
@@ -56,7 +56,70 @@ It does not:
 
 The TUI is not supported. The GUI composer API used here is only available in OpenCode Desktop.
 
-## Install from source
+## Install
+
+Add the plugin to the **global** OpenCode config; Desktop reads GUI plugins only from the global file:
+
+- macOS / Linux: `~/.config/opencode/opencode.jsonc`
+- Windows: `C:\Users\<you>\.config\opencode\opencode.jsonc`
+
+### From npm (recommended)
+
+```bash
+opencode plugin add opencode-prompt-optimization
+```
+
+To pin the version, append it: `opencode plugin add opencode-prompt-optimization@0.2.0`. A bare name stays on the version it installed; `opencode plugin update` moves it to the latest release.
+
+Or configure it by hand:
+
+```jsonc
+{
+  "shell": "powershell",
+  "plugins": [
+    {
+      "package": "opencode-prompt-optimization",
+      "options": {
+        "mode": "concise",
+        "model": "auto",
+        "projectContext": true,
+        "timeoutMs": 30000
+      }
+    }
+  ]
+}
+```
+
+Without options, the bare string form is enough:
+
+```jsonc
+{
+  "plugins": ["opencode-prompt-optimization"]
+}
+```
+
+### With npm directly
+
+`opencode plugin add` installs the package with npm for you. If you manage the install yourself:
+
+```bash
+npm install opencode-prompt-optimization@0.2.0
+```
+
+Then list the installed directory by absolute path, because OpenCode does not scan `node_modules` on its own:
+
+```jsonc
+{
+  "plugins": [
+    {
+      "package": "/absolute/path/to/node_modules/opencode-prompt-optimization",
+      "options": { "mode": "concise" }
+    }
+  ]
+}
+```
+
+### From source
 
 ```bash
 git clone https://github.com/rwjxrj/opencode-prompt-optimization.git
@@ -74,10 +137,7 @@ dist/rpc.js                RPC contract
 dist/gui-experimental.cjs  Desktop GUI bundle
 ```
 
-Add the plugin to the **global** OpenCode config. Desktop reads GUI plugins only from the global file:
-
-- macOS / Linux: `~/.config/opencode/opencode.jsonc`
-- Windows: `C:\Users\<you>\.config\opencode\opencode.jsonc`
+Point the global config at the checkout:
 
 ```jsonc
 {
@@ -102,9 +162,9 @@ On Windows, use forward slashes or escaped backslashes in the path, for example:
 "package": "D:/path/to/opencode-prompt-optimization"
 ```
 
-Then reload the Desktop window or restart OpenCode Desktop. The GUI bundle is loaded at window start; reloading only the server is not enough after a first install.
+### Reload and confirm
 
-Confirm the install:
+Reload the Desktop window or restart OpenCode Desktop. The GUI bundle is loaded at window start; reloading only the server is not enough after a first install.
 
 - **Settings > Extensions > Plugins** shows `prompt-optimization` as enabled.
 - The command palette has **Expand prompt**.
